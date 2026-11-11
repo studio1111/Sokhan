@@ -1,6 +1,6 @@
 import pytest
-from sokhan.vtt import dump_vtt, parse_vtt
 
+from sokhan.vtt import dump_vtt, parse_vtt
 
 SAMPLE = """WEBVTT
 
