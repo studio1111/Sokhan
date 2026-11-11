@@ -17,9 +17,10 @@
 | ترجمه PDF متنی و ساخت PDF فارسی RTL | پیاده‌سازی شده؛ نیازمند فونت TTF مناسب |
 | استخراج صوت با FFmpeg | پیاده‌سازی شده |
 | ASR انگلیسی با faster-whisper | اختیاری؛ زمان‌بندی segment و word حفظ می‌شود |
-| اتصال به TTS محلی OpenAI-compatible | adapter و CLI پیاده‌سازی شده؛ نیازمند موتور سازگار |\n| ساخت ترک دوبله زمان‌بندی‌شده از SRT یا صوت انگلیسی | پیاده‌سازی شده؛ PCM WAV و بدون time-stretch |
+| اتصال به TTS محلی OpenAI-compatible | adapter و CLI پیاده‌سازی شده؛ نیازمند موتور سازگار |
+| ساخت ترک دوبله زمان‌بندی‌شده از SRT یا صوت انگلیسی | پیاده‌سازی شده؛ PCM WAV و بدون time-stretch |
 | word alignment، diarization و emotion/prosody | در دست توسعه |
-| cross-lingual voice cloning و دوبله نهایی | در دست توسعه؛ نیازمند رضایت و ارزیابی مجوز |
+| کلون صدا، diarization و اتصال ترک دوبله به ویدئو | در دست توسعه؛ نیازمند رضایت و ارزیابی مجوز |
 | رابط دسکتاپ/وب و سامانه ایجنت پژوهش/بازبین | در دست توسعه |
 
 ## نصب
@@ -56,10 +57,12 @@ sokhan srt-fit captions.fa.srt readable.fa.srt --media-duration-ms 125000 --max-
 sokhan translate-vtt captions.en.vtt captions.fa.vtt
 sokhan extract-audio input.mp4 audio.wav
 python -m pip install -e ".[audio]"
-sokhan audio-to-srt audio.wav output.fa.srt --asr-model small.en --device cpu\nsokhan srt-to-dub output.fa.srt dub.wav --media-duration-ms 125000\nsokhan audio-to-dub input.wav dub.wav --asr-model small.en --device cpu --media-duration-ms 125000
+sokhan audio-to-srt audio.wav output.fa.srt --asr-model small.en --device cpu
+sokhan srt-to-dub output.fa.srt dub.wav --media-duration-ms 125000
+sokhan audio-to-dub input.wav dub.wav --asr-model small.en --device cpu --media-duration-ms 125000
 ~~~
 
-مدل ASR در نخستین اجرا ممکن است دانلود و در cache محلی نگهداری شود. فایل ویدئو بازسازی یا دوبله نمی‌شود.
+مدل ASR در نخستین اجرا ممکن است دانلود و در cache محلی نگهداری شود. دستورهای دوبله یک ترک WAV مستقل می‌سازند و ویدئو یا صدای اصلی را تغییر نمی‌دهند.
 
 ## TTS محلی
 
