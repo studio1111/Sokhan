@@ -25,7 +25,7 @@ def test_split_text_chunks_respects_limit_and_preserves_content():
 def test_translate_pdf_chunks_extracted_text(monkeypatch, tmp_path: Path):
     from sokhan import pdf
 
-    monkeypatch.setattr(pdf, "extract_pdf_text", lambda _: "A" * 20 + "\n\n" + "B" * 20)
+    monkeypatch.setattr(pdf, "extract_pdf_text", lambda _path, **_kwargs: "A" * 20 + "\n\n" + "B" * 20)
     captured = {}
     monkeypatch.setattr(
         pdf, "write_persian_pdf",
@@ -102,7 +102,7 @@ def test_ocr_pdf_text_uses_bounded_local_tesseract_pages(monkeypatch, tmp_path: 
     source.touch()
 
     assert ocr_pdf_text(source, language="eng", dpi=240, max_pages=2) == (
-        "Scanned page 1\\n\\nScanned page 2"
+        "Scanned page 1\n\nScanned page 2"
     )
     assert calls == [(1, "eng", 240, True), (2, "eng", 240, True)]
 
