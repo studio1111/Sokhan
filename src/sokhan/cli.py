@@ -13,7 +13,7 @@ from .speech import synthesizer_from_env
 from .subtitles import dump_srt, parse_srt, retime_cues, retime_cues_for_readability
 from .text import normalize_persian
 from .translation import translator_from_env
-from .vtt import dump_vtt, parse_vtt
+from .vtt import dump_vtt, parse_vtt, retime_vtt_for_readability
 from .workflows import audio_to_srt, translate_srt
 
 
@@ -45,6 +45,12 @@ def build_parser() -> argparse.ArgumentParser:
     fit.add_argument("--min-duration-ms", type=int, default=1_000)
     vtt = commands.add_parser("vtt-check", help="validate and normalize WebVTT timings")
     vtt.add_argument("input")
+    vtt_fit = commands.add_parser("vtt-fit", help="extend WebVTT cue display time to a readable rate")
+    vtt_fit.add_argument("input")
+    vtt_fit.add_argument("output")
+    vtt_fit.add_argument("--media-duration-ms", type=int, required=True)
+    vtt_fit.add_argument("--max-cps", type=float, default=17.0)
+    vtt_fit.add_argument("--min-duration-ms", type=int, default=1_000)
     audio = commands.add_parser("extract-audio", help="extract mono WAV audio from a media file")
     audio.add_argument("input")
     audio.add_argument("output")
@@ -108,6 +114,14 @@ def main() -> int:
             _write_new_file(args.output, dump_srt(cues))
         elif args.command == "vtt-check":
             print(dump_vtt(parse_vtt(Path(args.input).read_text(encoding="utf-8"))), end="")
+        elif args.command == "vtt-fit":
+            cues = retime_vtt_for_readability(
+                parse_vtt(Path(args.input).read_text(encoding="utf-8")),
+                media_end_ms=args.media_duration_ms,
+                max_chars_per_second=args.max_cps,
+                min_duration_ms=args.min_duration_ms,
+            )
+            _write_new_file(args.output, dump_vtt(cues))
         elif args.command == "extract-audio":
             extract_audio(args.input, args.output)
         elif args.command == "text-to-speech":

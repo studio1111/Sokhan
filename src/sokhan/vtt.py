@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 
-from .subtitles import Cue
+from .subtitles import Cue, retime_cues_for_readability
 
 _TIMESTAMP = re.compile(r"^(?:(?P<h>\d{2,}):)?(?P<m>[0-5]\d):(?P<s>[0-5]\d)\.(?P<ms>\d{3})$")
 
@@ -62,3 +62,19 @@ def dump_vtt(cues: list[Cue]) -> str:
         for cue in cues
     ]
     return "WEBVTT\n\n" + "\n\n".join(blocks) + ("\n" if blocks else "")
+
+
+def retime_vtt_for_readability(
+    cues: list[Cue],
+    *,
+    media_end_ms: int,
+    max_chars_per_second: float = 17.0,
+    min_duration_ms: int = 1_000,
+) -> list[Cue]:
+    """Apply the shared non-overlapping readability heuristic to WebVTT cues."""
+    return retime_cues_for_readability(
+        cues,
+        media_end_ms=media_end_ms,
+        max_chars_per_second=max_chars_per_second,
+        min_duration_ms=min_duration_ms,
+    )

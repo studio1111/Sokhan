@@ -14,8 +14,16 @@ inputs:
     description: "Path to a Persian-capable TrueType font for pdf-to-fa"
     required: false
   media-duration-ms:
-    description: "Media duration in milliseconds for srt-fit"
+    description: "Media duration in milliseconds for srt-fit or vtt-fit"
     required: false
+  max-cps:
+    description: "Maximum subtitle characters per second"
+    required: false
+    default: "17"
+  min-duration-ms:
+    description: "Minimum subtitle cue duration in milliseconds"
+    required: false
+    default: "1000"
   register:
     description: "Translation register"
     required: false
@@ -32,6 +40,8 @@ runs:
         SOKHAN_ACTION_OUTPUT: ${{ inputs.output }}
         SOKHAN_ACTION_FONT: ${{ inputs.font }}
         SOKHAN_ACTION_MEDIA_DURATION: ${{ inputs.media-duration-ms }}
+        SOKHAN_ACTION_MAX_CPS: ${{ inputs.max-cps }}
+        SOKHAN_ACTION_MIN_DURATION: ${{ inputs.min-duration-ms }}
         SOKHAN_ACTION_REGISTER: ${{ inputs.register }}
       run: |
         set -euo pipefail
@@ -47,9 +57,13 @@ runs:
           srt-check) sokhan srt-check "$SOKHAN_ACTION_INPUT" ;;
           srt-fit)
             test -n "$SOKHAN_ACTION_OUTPUT" && test -n "$SOKHAN_ACTION_MEDIA_DURATION"
-            sokhan srt-fit "$SOKHAN_ACTION_INPUT" "$SOKHAN_ACTION_OUTPUT" --media-duration-ms "$SOKHAN_ACTION_MEDIA_DURATION"
+            sokhan srt-fit "$SOKHAN_ACTION_INPUT" "$SOKHAN_ACTION_OUTPUT" --media-duration-ms "$SOKHAN_ACTION_MEDIA_DURATION" --max-cps "$SOKHAN_ACTION_MAX_CPS" --min-duration-ms "$SOKHAN_ACTION_MIN_DURATION"
             ;;
           vtt-check) sokhan vtt-check "$SOKHAN_ACTION_INPUT" ;;
+          vtt-fit)
+            test -n "$SOKHAN_ACTION_OUTPUT" && test -n "$SOKHAN_ACTION_MEDIA_DURATION"
+            sokhan vtt-fit "$SOKHAN_ACTION_INPUT" "$SOKHAN_ACTION_OUTPUT" --media-duration-ms "$SOKHAN_ACTION_MEDIA_DURATION" --max-cps "$SOKHAN_ACTION_MAX_CPS" --min-duration-ms "$SOKHAN_ACTION_MIN_DURATION"
+            ;;
           translate-srt|translate-vtt)
             test -n "$SOKHAN_ACTION_OUTPUT"
             sokhan "$SOKHAN_ACTION_COMMAND" "$SOKHAN_ACTION_INPUT" "$SOKHAN_ACTION_OUTPUT" --register "$SOKHAN_ACTION_REGISTER"
