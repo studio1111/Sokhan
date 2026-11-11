@@ -37,7 +37,7 @@ def test_readability_retiming_extends_cue_without_overlapping_next():
     from sokhan.subtitles import retime_cues_for_readability
 
     cues = [Cue(1, 0, 500, "A short translated line"), Cue(2, 3000, 3500, "Next")]
-    result = retime_cues_for_readability(cues, media_end_ms=5000, min_duration_ms=1200)
+    result = retime_cues_for_readability(\n        cues, media_end_ms=5000, max_chars_per_second=100, min_duration_ms=1200\n    )
     assert result[0].end_ms == 1200
     assert result[1].end_ms >= 3500
 
