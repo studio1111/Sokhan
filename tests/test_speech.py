@@ -47,6 +47,7 @@ def test_synthesizer_writes_wav_without_overwriting(tmp_path: Path):
     target = tmp_path / "speech.wav"
     assert engine.synthesize("سلام", target) == target
     assert target.read_bytes() == _wav()
+    assert opener.request.full_url.endswith("/v1/audio/speech")
     with pytest.raises(FileExistsError):
         engine.synthesize("سلام", target)
 
@@ -63,4 +64,16 @@ def test_synthesizer_rejects_empty_and_oversized_text(tmp_path: Path):
         LocalSpeechSynthesizer().synthesize(" ", tmp_path / "empty.wav")
     engine = LocalSpeechSynthesizer(max_text_chars=2)
     with pytest.raises(ValueError, match="exceeds"):
+        engine.synthesize("سلام", tmp_path / "large.wav")
+
+
+def test_synthesizer_rejects_remote_endpoint():
+    with pytest.raises(ValueError, match="external endpoints are disabled"):
+        LocalSpeechSynthesizer(endpoint="https://example.com")
+
+
+def test_synthesizer_enforces_audio_size_limit(tmp_path: Path):
+    engine = LocalSpeechSynthesizer(max_audio_bytes=8)
+    engine._opener = _Opener(_wav())
+    with pytest.raises(SpeechSynthesisError, match="size limit"):
         engine.synthesize("سلام", tmp_path / "large.wav")
