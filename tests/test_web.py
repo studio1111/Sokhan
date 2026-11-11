@@ -145,3 +145,34 @@ def test_web_rejects_oversized_subtitle_upload():
         headers=LOCAL_HEADERS,
     )
     assert response.status_code == 413
+
+def test_web_pdf_translation_uses_uploaded_font_in_temporary_storage(tmp_path, monkeypatch):
+    from pathlib import Path
+
+    from sokhan import web
+
+    captured = {}
+
+    def fake_translate_pdf(source, destination, translator, *, font_path, register):
+        font = Path(font_path)
+        captured["font_path"] = font
+        captured["font_bytes"] = font.read_bytes()
+        Path(destination).write_bytes(b"%PDF-1.4\\n")
+
+    monkeypatch.setattr(web, "translate_pdf", fake_translate_pdf)
+    response = make_client().post(
+        "/api/pdf/translate",
+        files={
+            "file": ("source.pdf", b"%PDF-1.4\\n", "application/pdf"),
+            "font_file": ("../../custom.ttf", b"trusted-test-font-bytes", "font/ttf"),
+        },
+        data={"register": "formal"},
+        headers=LOCAL_HEADERS,
+    )
+
+    assert response.status_code == 200
+    assert response.content.startswith(b"%PDF-")
+    assert captured["font_path"].name == "font.ttf"
+    assert captured["font_path"].parent.name.startswith("sokhan-web-pdf-")
+    assert captured["font_bytes"] == b"trusted-test-font-bytes"
+    assert not captured["font_path"].exists()
