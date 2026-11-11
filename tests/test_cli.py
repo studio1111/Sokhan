@@ -22,3 +22,56 @@ def test_srt_fit_cli_requires_media_duration():
     ])
     assert args.command == "srt-fit"
     assert args.media_duration_ms == 120000
+
+def test_benchmark_tts_cli_writes_aggregate_json_without_source_text(tmp_path, monkeypatch):
+    import json
+    import wave
+
+    from sokhan import cli
+
+    samples = tmp_path / "samples.txt"
+    report = tmp_path / "report.json"
+    samples.write_text("private phrase one\n\nprivate phrase two\n", encoding="utf-8")
+
+    class FakeSynthesizer:
+        model = "test-local-tts"
+
+        def synthesize(self, text, output_path):
+            with wave.open(str(output_path), "wb") as output:
+                output.setnchannels(1)
+                output.setsampwidth(2)
+                output.setframerate(8_000)
+                output.writeframes(b"\x00\x00" * 800)
+            return output_path
+
+    monkeypatch.setattr(cli, "synthesizer_from_env", lambda: FakeSynthesizer())
+    monkeypatch.setattr(
+        "sys.argv",
+        ["sokhan", "benchmark-tts", str(samples), str(report)],
+    )
+
+    assert cli.main() == 0
+    result = json.loads(report.read_text(encoding="utf-8"))
+    assert result["sample_count"] == 2
+    assert result["model"] == "test-local-tts"
+    assert "private phrase" not in report.read_text(encoding="utf-8")
+
+def test_benchmark_tts_cli_rejects_oversized_sample_file(tmp_path, monkeypatch, capsys):
+    from sokhan import cli
+
+    samples = tmp_path / "samples.txt"
+    report = tmp_path / "report.json"
+    samples.write_bytes(b"x" * (1024 * 1024 + 1))
+    monkeypatch.setattr(
+        cli,
+        "synthesizer_from_env",
+        lambda: (_ for _ in ()).throw(AssertionError("synthesizer must not start")),
+    )
+    monkeypatch.setattr(
+        "sys.argv",
+        ["sokhan", "benchmark-tts", str(samples), str(report)],
+    )
+
+    assert cli.main() == 2
+    assert "1 MiB" in capsys.readouterr().err
+    assert not report.exists()

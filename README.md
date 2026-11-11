@@ -68,7 +68,10 @@ export SOKHAN_TTS_BASE_URL=http://127.0.0.1:1234
 export SOKHAN_TTS_MODEL=your-local-tts-model
 export SOKHAN_TTS_VOICE=default
 sokhan text-to-speech persian.txt output.wav
+sokhan benchmark-tts benchmark-samples.txt tts-report.json
 ~~~
+
+فرمان benchmark به endpoint محلی TTS وصل می‌شود، تأخیر، real-time factor، مدت و مشخصات WAV را می‌سنجد و فقط معیارهای تجمیعی را در JSON می‌نویسد. متن نمونه‌ها و فایل‌های صوتی موقت وارد گزارش نمی‌شوند. این benchmark کیفیت شنیداری یا طبیعی‌بودن صدا را اندازه‌گیری نمی‌کند.
 
 آداپتر از endpoint سازگار با OpenAI در مسیر `/v1/audio/speech` استفاده می‌کند. endpoint فقط localhost است و redirect یا fallback ابری مجاز نیست. نام مدل و voice باید با موتور محلی شما سازگار باشد. هیچ مدل TTS یا وزن صوتی همراه بسته نصب نمی‌شود.
 
