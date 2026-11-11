@@ -9,6 +9,7 @@ from pathlib import Path
 from .asr import FasterWhisperASR
 from .media import extract_audio
 from .pdf import extract_pdf_text, translate_pdf
+from .speech import synthesizer_from_env
 from .subtitles import dump_srt, parse_srt, retime_cues
 from .text import normalize_persian
 from .translation import translator_from_env
@@ -41,6 +42,9 @@ def build_parser() -> argparse.ArgumentParser:
     audio = commands.add_parser("extract-audio", help="extract mono WAV audio from a media file")
     audio.add_argument("input")
     audio.add_argument("output")
+    tts = commands.add_parser("text-to-speech", help="synthesize WAV through a local TTS endpoint")
+    tts.add_argument("input", nargs="?", help="text file; stdin if omitted")
+    tts.add_argument("output")
     dubbing = commands.add_parser("audio-to-srt", help="transcribe English audio and translate to Persian SRT")
     dubbing.add_argument("input")
     dubbing.add_argument("output")
@@ -92,6 +96,8 @@ def main() -> int:
             print(dump_vtt(parse_vtt(Path(args.input).read_text(encoding="utf-8"))), end="")
         elif args.command == "extract-audio":
             extract_audio(args.input, args.output)
+        elif args.command == "text-to-speech":
+            synthesizer_from_env().synthesize(_read_input(args.input), args.output)
         elif args.command == "audio-to-srt":
             asr = FasterWhisperASR(model_name=args.asr_model, device=args.device)
             cues = audio_to_srt(args.input, asr, translator_from_env(), register=args.register)
