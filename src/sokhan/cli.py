@@ -87,7 +87,10 @@ def main() -> int:
     args = build_parser().parse_args()
     try:
         if args.command == "serve":
-            from .web import serve_local_web
+            try:
+                from .web import serve_local_web
+            except ImportError as exc:
+                raise RuntimeError("install the web extra: pip install 'sokhan[web]'") from exc
             serve_local_web(host=args.host, port=args.port)
         elif args.command == "normalize-fa":
             print(normalize_persian(_read_input(args.input)))
