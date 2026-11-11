@@ -23,7 +23,7 @@ def test_split_text_chunks_respects_limit_and_preserves_content():
 
 
 def test_translate_pdf_chunks_extracted_text(monkeypatch, tmp_path: Path):
-    import sokhan.pdf as pdf
+    from sokhan import pdf
 
     monkeypatch.setattr(pdf, "extract_pdf_text", lambda _: "A" * 20 + "\n\n" + "B" * 20)
     captured = {}
