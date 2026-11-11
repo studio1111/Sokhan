@@ -8,6 +8,7 @@
 - FFmpeg audio extraction and optional timestamped English ASR.
 - Local-only OpenAI-compatible TTS adapter and CLI; engine/model selection and voice quality remain external evaluation tasks.
 - CI matrix, lint, PDF rendering smoke test, retention policy tests, weekly quality baseline.
+- Deterministic WER/CER transcript comparison and aggregate ASR timing/confidence diagnostics; no transcript text is included in aggregate reports.
 
 ## Remaining engineering work
 
