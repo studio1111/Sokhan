@@ -154,7 +154,11 @@ def test_pdf_extraction_can_explicitly_fallback_to_ocr(monkeypatch, tmp_path: Pa
     from sokhan import pdf
 
     monkeypatch.setattr(pdf, "ocr_pdf_text", lambda path, **kwargs: "OCR result")
-    monkeypatch.setattr(pdf, "_extract_pdf_text_native", lambda path: "")
+    monkeypatch.setattr(pdf, "_extract_pdf_pages_native", lambda path: [""])
+    monkeypatch.setattr(
+        pdf, "_ocr_pdf_pages",
+        lambda path, **kwargs: {0: "OCR result"},
+    )
     assert pdf.extract_pdf_text(tmp_path / "scanned.pdf", ocr=True) == "OCR result"
 
 
@@ -200,3 +204,25 @@ def test_translate_pdf_forwards_explicit_ocr_configuration(monkeypatch, tmp_path
     assert captured["options"] == {
         "ocr": True, "ocr_language": "eng+fas", "ocr_dpi": 240, "ocr_max_pages": 12,
     }
+
+
+def test_pdf_extraction_ocr_only_scanned_pages_in_mixed_document(monkeypatch, tmp_path: Path):
+    from sokhan import pdf
+
+    seen = {}
+    monkeypatch.setattr(pdf, "_extract_pdf_pages_native", lambda path: ["Native text", ""])
+    monkeypatch.setattr(
+        pdf, "_ocr_pdf_pages",
+        lambda path, **kwargs: seen.update(kwargs) or {1: "Recognized scan"},
+    )
+    result = pdf.extract_pdf_text(tmp_path / "mixed.pdf", ocr=True)
+    assert result == "Native text\\n\\nRecognized scan"
+    assert seen["page_indices"] == {1}
+
+
+def test_pdf_extraction_keeps_ocr_opt_in(monkeypatch, tmp_path: Path):
+    from sokhan import pdf
+
+    monkeypatch.setattr(pdf, "_extract_pdf_pages_native", lambda path: [""])
+    with pytest.raises(pdf.PDFExtractionError, match="explicit OCR"):
+        pdf.extract_pdf_text(tmp_path / "scan.pdf")
