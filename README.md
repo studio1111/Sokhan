@@ -16,8 +16,8 @@
 | استخراج متن PDF متنی | پیاده‌سازی اختیاری با افزونه PDF |
 | ترجمه کامل فایل PDF و ساخت PDF راست‌چین | در دست توسعه |
 | ترجمه SRT/VTT و تنظیم هوشمند زمان‌بندی | در دست توسعه |
-| استخراج صوت از ویدئو | در دست توسعه |
-| ASR با زمان‌بندی کلمات و تفکیک گوینده | در دست توسعه |
+| استخراج صوت از فایل صوتی/ویدئویی به WAV | پیاده‌سازی شده با FFmpeg |
+| ASR انگلیسی با زمان‌بندی قطعه‌ها | پیاده‌سازی اختیاری با faster-whisper |\n| تفکیک گوینده و زمان‌بندی دقیق کلمات | در دست توسعه |
 | تحلیل احساس، مکث و تأکید | در دست توسعه |
 | تولید گفتار فارسی و حفظ هویت صدای گوینده | در دست توسعه؛ نیازمند ارزیابی مدل و رضایت صاحب صدا |
 
@@ -36,8 +36,25 @@ ruff check .
 ~~~bash
 sokhan normalize-fa input.txt
 sokhan extract-pdf document.pdf
-sokhan srt-check captions.srt --max-duration-ms 120000
+sokhan srt-check captions.srt --max-duration-ms 120000\nsokhan extract-audio input.mp4 audio.wav
 ~~~
+
+### استخراج صوت و زیرنویس فارسی
+
+برای استخراج صوت، FFmpeg باید روی سیستم نصب باشد:
+
+~~~bash
+sokhan extract-audio input.mp4 audio.wav
+~~~
+
+برای ASR و تولید زیرنویس فارسی، افزونه صوتی را نصب و یک مدل ترجمه محلی را اجرا کنید:
+
+~~~bash
+python -m pip install -e ".[audio]"
+sokhan audio-to-srt audio.wav output.fa.srt --asr-model small.en --device cpu
+~~~
+
+مدل ASR در نخستین اجرا ممکن است از منبع مدل دریافت و در cache محلی نگهداری شود. این فرمان فقط فایل صوتی را پردازش و زیرنویس SRT تولید می‌کند؛ هیچ ویدئویی بازسازی یا دوبله نمی‌شود.
 
 ### ترجمه با مدل محلی
 
