@@ -28,12 +28,20 @@ def build_parser() -> argparse.ArgumentParser:
                            default="conversational")
     pdf = commands.add_parser("extract-pdf", help="extract text from a PDF")
     pdf.add_argument("input")
-    pdf_translate = commands.add_parser("pdf-to-fa", help="translate a text PDF into Persian RTL PDF")
+    pdf.add_argument("--ocr", action="store_true", help="enable local OCR for scanned PDFs")
+    pdf.add_argument("--ocr-language", default="eng")
+    pdf.add_argument("--ocr-dpi", type=int, default=300)
+    pdf.add_argument("--ocr-max-pages", type=int, default=200)
+    pdf_translate = commands.add_parser("pdf-to-fa", help="translate a text or scanned PDF into Persian RTL PDF")
     pdf_translate.add_argument("input")
     pdf_translate.add_argument("output")
     pdf_translate.add_argument("--font", required=True, help="path to a Persian-capable TrueType font")
     pdf_translate.add_argument("--register", choices=("conversational", "formal", "neutral"),
                                default="conversational")
+    pdf_translate.add_argument("--ocr", action="store_true", help="enable local OCR for scanned PDFs")
+    pdf_translate.add_argument("--ocr-language", default="eng")
+    pdf_translate.add_argument("--ocr-dpi", type=int, default=300)
+    pdf_translate.add_argument("--ocr-max-pages", type=int, default=200)
     srt = commands.add_parser("srt-check", help="validate and optionally clamp SRT timings")
     srt.add_argument("input")
     srt.add_argument("--max-duration-ms", type=int)
@@ -91,10 +99,16 @@ def main() -> int:
                 TranslationRequest(_read_input(args.input), register=args.register))
             print(result.text)
         elif args.command == "extract-pdf":
-            print(extract_pdf_text(args.input))
+            print(extract_pdf_text(
+                args.input, ocr=args.ocr, ocr_language=args.ocr_language,
+                ocr_dpi=args.ocr_dpi, ocr_max_pages=args.ocr_max_pages,
+            ))
         elif args.command == "pdf-to-fa":
-            translate_pdf(args.input, args.output, translator_from_env(),
-                          font_path=args.font, register=args.register)
+            translate_pdf(
+                args.input, args.output, translator_from_env(), font_path=args.font,
+                register=args.register, ocr=args.ocr, ocr_language=args.ocr_language,
+                ocr_dpi=args.ocr_dpi, ocr_max_pages=args.ocr_max_pages,
+            )
         elif args.command == "srt-check":
             cues = parse_srt(Path(args.input).read_text(encoding="utf-8"))
             print(dump_srt(retime_cues(cues, max_end_ms=args.max_duration_ms)), end="")
