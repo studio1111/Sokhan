@@ -54,6 +54,7 @@ sokhan pdf-to-fa source.pdf translated.fa.pdf --font /path/to/NotoNaskhArabic-Re
 sokhan translate-srt captions.en.srt captions.fa.srt
 sokhan srt-fit captions.fa.srt readable.fa.srt --media-duration-ms 125000 --max-cps 17
 sokhan translate-vtt captions.en.vtt captions.fa.vtt
+sokhan vtt-fit captions.fa.vtt readable.fa.vtt --media-duration-ms 125000 --max-cps 17
 sokhan extract-audio input.mp4 audio.wav
 python -m pip install -e ".[audio]"
 sokhan audio-to-srt audio.wav output.fa.srt --asr-model small.en --device cpu
