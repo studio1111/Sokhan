@@ -25,6 +25,7 @@ _MAX_TTS_BYTES = 50 * 1024 * 1024
 _MAX_PDF_OUTPUT_BYTES = 50 * 1024 * 1024
 _ALLOWED_ASR_MODELS = {"tiny.en", "base.en", "small.en", "medium.en", "large-v3"}
 _ALLOWED_REGISTERS = {"conversational", "formal", "neutral"}
+_UPLOAD_REQUIRED = _UPLOAD_REQUIRED
 
 
 class _RequestTooLarge(Exception):
@@ -239,7 +240,7 @@ def create_app(
 
     @app.post("/api/srt/translate")
     def srt_translate(
-        file: UploadFile = File(...),
+        file: UploadFile = _UPLOAD_REQUIRED,
         register: str = Form("conversational"),
     ):
         _check_register(register)
@@ -256,11 +257,10 @@ def create_app(
 
     @app.post("/api/vtt/translate")
     def vtt_translate(
-        file: UploadFile = File(...),
+        file: UploadFile = _UPLOAD_REQUIRED,
         register: str = Form("conversational"),
     ):
         _check_register(register)
-        from .vtt import dump_vtt, parse_vtt
 
         content = _decode_text(_read_upload(file, _MAX_SUBTITLE_BYTES))
         try:
@@ -274,7 +274,7 @@ def create_app(
         )
 
     @app.post("/api/pdf/extract")
-    def pdf_extract(file: UploadFile = File(...)):
+    def pdf_extract(file: UploadFile = _UPLOAD_REQUIRED):
         payload = _read_upload(file, _MAX_PDF_BYTES)
         if b"%PDF-" not in payload[:1_024]:
             raise HTTPException(status_code=415, detail="uploaded file is not a PDF")
@@ -289,7 +289,7 @@ def create_app(
 
     @app.post("/api/pdf/translate")
     def pdf_translate(
-        file: UploadFile = File(...),
+        file: UploadFile = _UPLOAD_REQUIRED,
         font_path: str = Form(...),
         register: str = Form("conversational"),
     ):
@@ -318,7 +318,7 @@ def create_app(
 
     @app.post("/api/audio/srt")
     def audio_srt(
-        file: UploadFile = File(...),
+        file: UploadFile = _UPLOAD_REQUIRED,
         asr_model: str = Form("small.en"),
         device: str = Form("cpu"),
         register: str = Form("conversational"),
