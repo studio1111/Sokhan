@@ -114,7 +114,7 @@ def split_text_chunks(text: str, max_chars: int = 6_000) -> list[str]:
         raise ValueError("PDF text must not be empty")
     chunks: list[str] = []
     current = ""
-    paragraphs = [re.sub(r"\\s+", " ", part).strip() for part in text.split("\n\n")]
+    paragraphs = [re.sub(r"\s+", " ", part).strip() for part in text.split("\n\n")]
     for paragraph in (part for part in paragraphs if part):
         pieces: Iterable[str]
         if len(paragraph) <= max_chars:
