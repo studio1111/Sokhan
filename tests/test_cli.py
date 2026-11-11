@@ -55,3 +55,23 @@ def test_benchmark_tts_cli_writes_aggregate_json_without_source_text(tmp_path, m
     assert result["sample_count"] == 2
     assert result["model"] == "test-local-tts"
     assert "private phrase" not in report.read_text(encoding="utf-8")
+
+def test_benchmark_tts_cli_rejects_oversized_sample_file(tmp_path, monkeypatch, capsys):
+    from sokhan import cli
+
+    samples = tmp_path / "samples.txt"
+    report = tmp_path / "report.json"
+    samples.write_bytes(b"x" * (1024 * 1024 + 1))
+    monkeypatch.setattr(
+        cli,
+        "synthesizer_from_env",
+        lambda: (_ for _ in ()).throw(AssertionError("synthesizer must not start")),
+    )
+    monkeypatch.setattr(
+        "sys.argv",
+        ["sokhan", "benchmark-tts", str(samples), str(report)],
+    )
+
+    assert cli.main() == 2
+    assert "1 MiB" in capsys.readouterr().err
+    assert not report.exists()
