@@ -22,3 +22,14 @@ def test_srt_fit_cli_requires_media_duration():
     ])
     assert args.command == "srt-fit"
     assert args.media_duration_ms == 120000
+
+
+def test_vtt_fit_cli_requires_media_duration():
+    args = build_parser().parse_args([
+        "vtt-fit", "source.vtt", "fitted.vtt", "--media-duration-ms", "120000",
+        "--max-cps", "16", "--min-duration-ms", "900",
+    ])
+    assert args.command == "vtt-fit"
+    assert args.media_duration_ms == 120000
+    assert args.max_cps == 16
+    assert args.min_duration_ms == 900
