@@ -10,7 +10,7 @@
 |---|---|
 | یکسان‌سازی نویسه‌ها و فاصله‌گذاری فارسی | پیاده‌سازی شده |
 | اعتبارسنجی، خواندن و نوشتن SRT/VTT | پیاده‌سازی شده |
-| ترجمه SRT/VTT با حفظ زمان cueها | پیاده‌سازی شده |
+| ترجمه SRT/VTT با حفظ زمان cueها | پیاده‌سازی شده |\n| افزایش زمان نمایش SRT بر پایه نرخ خواندن و بدون هم‌پوشانی | پیاده‌سازی شده؛ heuristic، نه word alignment |
 | اتصال ترجمه به مدل محلی سازگار با OpenAI | پیاده‌سازی شده؛ بدون fallback ابری |
 | استخراج متن PDF متنی | پیاده‌سازی شده |
 | ترجمه PDF متنی و ساخت PDF فارسی RTL | پیاده‌سازی شده؛ نیازمند فونت TTF مناسب |
@@ -51,6 +51,7 @@ sokhan pdf-to-fa source.pdf translated.fa.pdf --font /path/to/NotoNaskhArabic-Re
 
 ~~~bash
 sokhan translate-srt captions.en.srt captions.fa.srt
+sokhan srt-fit captions.fa.srt readable.fa.srt --media-duration-ms 125000 --max-cps 17
 sokhan translate-vtt captions.en.vtt captions.fa.vtt
 sokhan extract-audio input.mp4 audio.wav
 python -m pip install -e ".[audio]"
