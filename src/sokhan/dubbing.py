@@ -51,18 +51,10 @@ def _write_silence(output: wave.Wave_write, frame_count: int) -> None:
         remaining -= chunk_frames
 
 
-def stitch_srt_audio(
-    cues: Sequence[Cue],
-    audio_paths: Mapping[int, str | Path],
-    output_path: str | Path,
-    *,
-    media_duration_ms: int | None = None,
-) -> Path:
-    """Place mono PCM16 cue clips on the SRT timeline, padding all gaps with silence.
-
-    Clips are never truncated or time-stretched. A clip longer than its cue window,
-    overlapping cues, or incompatible WAV formats are rejected.
-    """
+def _validate_timeline(
+    cues: Sequence[Cue], media_duration_ms: int | None = None
+) -> int:
+    """Validate cue ordering and output bounds before any expensive synthesis work."""
     if not cues:
         raise ValueError("at least one subtitle cue is required")
     previous_index = 0
@@ -75,22 +67,40 @@ def stitch_srt_audio(
         previous_index = cue.index
         previous_end_ms = cue.end_ms
 
-    expected_indices = {cue.index for cue in cues}
-    if set(audio_paths) != expected_indices:
-        missing = sorted(expected_indices - set(audio_paths))
-        if missing:
-            raise FileNotFoundError(f"missing synthesized audio for cue {missing[0]}")
-        raise ValueError("audio path mapping contains unknown cue indices")
-
     if media_duration_ms is not None:
-        if (not isinstance(media_duration_ms, int) or isinstance(media_duration_ms, bool)
-                or media_duration_ms < previous_end_ms):
+        if (
+            not isinstance(media_duration_ms, int)
+            or isinstance(media_duration_ms, bool)
+            or media_duration_ms < previous_end_ms
+        ):
             raise ValueError("media duration must be an integer covering the final cue")
         duration_ms = media_duration_ms
     else:
         duration_ms = previous_end_ms
     if duration_ms > _MAX_OUTPUT_DURATION_MS:
         raise ValueError("dubbed output is limited to one hour")
+    return duration_ms
+
+
+def stitch_srt_audio(
+    cues: Sequence[Cue],
+    audio_paths: Mapping[int, str | Path],
+    output_path: str | Path,
+    *,
+    media_duration_ms: int | None = None,
+) -> Path:
+    """Place mono PCM16 cue clips on the SRT timeline, padding all gaps with silence.
+
+    Clips are never truncated or time-stretched. A clip longer than its cue window,
+    overlapping cues, or incompatible WAV formats are rejected.
+    """
+    duration_ms = _validate_timeline(cues, media_duration_ms)
+    expected_indices = {cue.index for cue in cues}
+    if set(audio_paths) != expected_indices:
+        missing = sorted(expected_indices - set(audio_paths))
+        if missing:
+            raise FileNotFoundError(f"missing synthesized audio for cue {missing[0]}")
+        raise ValueError("audio path mapping contains unknown cue indices")
 
     destination = Path(output_path)
     if not destination.parent.is_dir():
@@ -159,8 +169,7 @@ def synthesize_srt(
     media_duration_ms: int | None = None,
 ) -> Path:
     """Synthesize every Persian cue through a local adapter, then stitch the WAV track."""
-    if not cues:
-        raise ValueError("at least one subtitle cue is required")
+    _validate_timeline(cues, media_duration_ms)
     destination = Path(output_path)
     if destination.exists():
         raise FileExistsError(destination)
