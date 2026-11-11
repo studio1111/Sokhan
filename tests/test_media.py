@@ -16,7 +16,7 @@ def test_extract_audio_invokes_ffmpeg_without_shell(monkeypatch, tmp_path):
         assert command[0] == "/usr/bin/ffmpeg"
         assert "-vn" in command
         assert kwargs["shell"] is False
-        Path(command[-1]).write_bytes(b"RIFFfixture")
+        Path(command[-1]).write_bytes(b"RIFF" + b"0" * 48)
         return subprocess.CompletedProcess(command, 0, b"", b"")
 
     monkeypatch.setattr("sokhan.media.subprocess.run", fake_run)
