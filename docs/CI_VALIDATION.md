@@ -17,3 +17,8 @@ The workflow retention job runs daily and keeps the newest 30 completed runs per
 A green CI result verifies deterministic software tests and static analysis. It does not establish translation quality, TTS naturalness, speaker similarity, visual PDF fidelity across readers, or cross-lingual alignment quality. Those require versioned evaluation corpora, licensed audio, human review, and reproducible hardware benchmarks.
 
 Model weights are not downloaded in CI, and user audio or transcripts are never uploaded as artifacts.
+
+
+## Optional OCR runtime
+
+The deterministic CI suite tests the OCR adapter through a fake PyMuPDF document; it does not install Tesseract or download language data. Real OCR verification must be performed on a machine with the OCR extra, Tesseract executable, and required language packs installed. OCR is disabled by default and bounded by DPI and page-count limits.
