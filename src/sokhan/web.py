@@ -2,8 +2,8 @@
 from __future__ import annotations
 
 import tempfile
-from pathlib import Path
 from collections.abc import Callable
+from pathlib import Path
 from typing import Literal
 from urllib.parse import urlsplit
 
