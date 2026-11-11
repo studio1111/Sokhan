@@ -1,3 +1,5 @@
+import pytest
+
 from sokhan.cli import build_parser
 
 
