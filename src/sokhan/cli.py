@@ -1,4 +1,4 @@
-"""Command-line interface for text, subtitles, and audio ingestion."""
+"""Command-line interface for text, subtitles, PDF, and audio workflows."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from pathlib import Path
 
 from .asr import FasterWhisperASR
 from .media import extract_audio
-from .pdf import extract_pdf_text
+from .pdf import extract_pdf_text, translate_pdf
 from .subtitles import dump_srt, parse_srt, retime_cues
 from .text import normalize_persian
 from .translation import translator_from_env
@@ -27,6 +27,12 @@ def build_parser() -> argparse.ArgumentParser:
                            default="conversational")
     pdf = commands.add_parser("extract-pdf", help="extract text from a PDF")
     pdf.add_argument("input")
+    pdf_translate = commands.add_parser("pdf-to-fa", help="translate a text PDF into Persian RTL PDF")
+    pdf_translate.add_argument("input")
+    pdf_translate.add_argument("output")
+    pdf_translate.add_argument("--font", required=True, help="path to a Persian-capable TrueType font")
+    pdf_translate.add_argument("--register", choices=("conversational", "formal", "neutral"),
+                               default="conversational")
     srt = commands.add_parser("srt-check", help="validate and optionally clamp SRT timings")
     srt.add_argument("input")
     srt.add_argument("--max-duration-ms", type=int)
@@ -76,6 +82,9 @@ def main() -> int:
             print(result.text)
         elif args.command == "extract-pdf":
             print(extract_pdf_text(args.input))
+        elif args.command == "pdf-to-fa":
+            translate_pdf(args.input, args.output, translator_from_env(),
+                          font_path=args.font, register=args.register)
         elif args.command == "srt-check":
             cues = parse_srt(Path(args.input).read_text(encoding="utf-8"))
             print(dump_srt(retime_cues(cues, max_end_ms=args.max_duration_ms)), end="")
