@@ -31,7 +31,7 @@ def test_benchmark_tts_cli_writes_aggregate_json_without_source_text(tmp_path, m
 
     samples = tmp_path / "samples.txt"
     report = tmp_path / "report.json"
-    samples.write_text("private phrase one\\n\\nprivate phrase two\\n", encoding="utf-8")
+    samples.write_text("private phrase one\n\nprivate phrase two\n", encoding="utf-8")
 
     class FakeSynthesizer:
         model = "test-local-tts"
@@ -41,7 +41,7 @@ def test_benchmark_tts_cli_writes_aggregate_json_without_source_text(tmp_path, m
                 output.setnchannels(1)
                 output.setsampwidth(2)
                 output.setframerate(8_000)
-                output.writeframes(b"\\x00\\x00" * 800)
+                output.writeframes(b"\x00\x00" * 800)
             return output_path
 
     monkeypatch.setattr(cli, "synthesizer_from_env", lambda: FakeSynthesizer())
