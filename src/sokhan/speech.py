@@ -65,6 +65,8 @@ class LocalSpeechSynthesizer:
             headers={"Content-Type": "application/json", "Accept": "audio/wav"},
             method="POST",
         )
+        destination = Path(output_path)
+        output_created = False
         try:
             with self._opener.open(request, timeout=self.timeout_seconds) as response:
                 content_type = response.headers.get_content_type()
@@ -75,15 +77,19 @@ class LocalSpeechSynthesizer:
                 raise SpeechSynthesisError("speech response exceeded configured size limit")
             if not audio.startswith(b"RIFF") or audio[8:12] != b"WAVE":
                 raise SpeechSynthesisError("speech engine did not return a valid WAV stream")
-            destination = Path(output_path)
             with destination.open("xb") as output:
+                output_created = True
                 output.write(audio)
             return destination
         except SpeechSynthesisError:
+            if output_created:
+                destination.unlink(missing_ok=True)
             raise
         except FileExistsError:
             raise
         except (HTTPError, URLError, TimeoutError, OSError) as exc:
+            if output_created:
+                destination.unlink(missing_ok=True)
             raise SpeechSynthesisError(
                 "local speech request failed; redirects and cloud fallback are disabled"
             ) from exc
