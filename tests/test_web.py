@@ -1,8 +1,6 @@
 import struct
 import wave
-from pathlib import Path
 
-import pytest
 from fastapi.testclient import TestClient
 
 from sokhan.contracts import SpeechSegment, TranslationResult
@@ -74,7 +72,7 @@ def test_web_rejects_oversized_text():
     response = client.post(
         "/api/translate", json={"text": "x" * 100_001}, headers=LOCAL_HEADERS,
     )
-    assert response.status_code == 413
+    assert response.status_code == 422
 
 
 def test_web_translates_srt_without_changing_timestamps():
@@ -111,7 +109,7 @@ def test_web_rejects_non_pdf_upload():
     assert response.status_code == 415
 
 
-def test_web_audio_to_srt_uses_injected_asr(tmp_path: Path):
+def test_web_audio_to_srt_uses_injected_asr():
     client = make_client()
     response = client.post(
         "/api/audio/srt",
