@@ -14,8 +14,8 @@ from .pdf import extract_pdf_text, translate_pdf
 from .speech import synthesizer_from_env
 from .subtitles import dump_srt, parse_srt, retime_cues, retime_cues_for_readability
 from .text import normalize_persian
-from .tts_benchmark import benchmark_speech
 from .translation import translator_from_env
+from .tts_benchmark import benchmark_speech
 from .vtt import dump_vtt, parse_vtt
 from .workflows import audio_to_srt, translate_srt
 
