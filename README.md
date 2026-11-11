@@ -16,7 +16,7 @@
 | استخراج متن PDF متنی | پیاده‌سازی شده |
 | ترجمه PDF متنی و ساخت PDF فارسی RTL | پیاده‌سازی شده؛ نیازمند فونت TTF مناسب |
 | استخراج صوت با FFmpeg | پیاده‌سازی شده |
-| ASR انگلیسی با faster-whisper | اختیاری؛ زمان‌بندی segment و word حفظ می‌شود |
+| ASR انگلیسی با faster-whisper | اختیاری؛ زمان‌بندی segment و word حفظ می‌شود |\n| ارزیابی متن و گفتار | WER/CER و خلاصهٔ پوشش زمانی، فاصله‌ها، هم‌پوشانی‌ها و اطمینان word |
 | اتصال به TTS محلی OpenAI-compatible | adapter و CLI پیاده‌سازی شده؛ نیازمند موتور سازگار |
 | word alignment، diarization و emotion/prosody | در دست توسعه |
 | cross-lingual voice cloning و دوبله نهایی | در دست توسعه؛ نیازمند رضایت و ارزیابی مجوز |

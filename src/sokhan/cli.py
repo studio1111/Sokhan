@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
 from .asr import FasterWhisperASR
+from .evaluation import character_error_rate, word_error_rate
 from .media import extract_audio
 from .pdf import extract_pdf_text, translate_pdf
 from .speech import synthesizer_from_env
@@ -20,6 +22,11 @@ from .workflows import audio_to_srt, translate_srt
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="sokhan", description="English-to-Persian language toolkit")
     commands = parser.add_subparsers(dest="command", required=True)
+    evaluate = commands.add_parser(
+        "evaluate-text", help="compare a transcript with a human reference using WER and CER"
+    )
+    evaluate.add_argument("reference", help="human-corrected reference text file")
+    evaluate.add_argument("hypothesis", help="generated transcript text file")
     normalize = commands.add_parser("normalize-fa", help="normalize Persian typography")
     normalize.add_argument("input", nargs="?", help="text file; stdin if omitted")
     translate = commands.add_parser("translate", help="translate using a local model endpoint")
@@ -83,7 +90,15 @@ def _write_new_file(path: str, content: str) -> None:
 def main() -> int:
     args = build_parser().parse_args()
     try:
-        if args.command == "normalize-fa":
+        if args.command == "evaluate-text":
+            reference = Path(args.reference).read_text(encoding="utf-8")
+            hypothesis = Path(args.hypothesis).read_text(encoding="utf-8")
+            metrics = {
+                "wer": word_error_rate(reference, hypothesis),
+                "cer": character_error_rate(reference, hypothesis),
+            }
+            print(json.dumps(metrics, ensure_ascii=False, sort_keys=True))
+        elif args.command == "normalize-fa":
             print(normalize_persian(_read_input(args.input)))
         elif args.command == "translate":
             from .contracts import TranslationRequest
