@@ -6,8 +6,9 @@ measure translation adequacy, speaker identity, emotion, or perceived naturalnes
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import math
+from dataclasses import dataclass
+from itertools import pairwise
 
 from .contracts import SpeechSegment
 from .text import normalize_persian
@@ -110,7 +111,7 @@ def summarize_speech(
 
     speech_duration = sum(end - start for start, end in intervals)
     gap_count = sum(
-        1 for previous, current in zip(intervals, intervals[1:])
+        1 for previous, current in pairwise(intervals)
         if current[0] > previous[1]
     )
     words = [word for segment in ordered for word in segment.words]
