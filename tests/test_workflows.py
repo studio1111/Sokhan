@@ -1,4 +1,4 @@
-from sokhan.contracts import TranslationResult, SpeechSegment
+from sokhan.contracts import SpeechSegment, TranslationResult
 from sokhan.subtitles import Cue
 from sokhan.workflows import audio_to_srt, translate_srt, translate_text
 
