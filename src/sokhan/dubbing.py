@@ -122,13 +122,9 @@ def stitch_srt_audio(
     if total_frames * 2 > 512 * 1024 * 1024:
         raise ValueError("dubbed output exceeds the 512 MiB output limit")
 
+    stream = destination.open("xb")
     try:
-        stream = destination.open("xb")
-    except FileExistsError:
-        raise
-    try:
-        with stream:
-            with wave.open(stream, "wb") as output:
+        with stream, wave.open(stream, "wb") as output:
                 output.setnchannels(1)
                 output.setsampwidth(2)
                 output.setframerate(sample_rate)
@@ -161,6 +157,11 @@ def synthesize_srt(
     """Synthesize every Persian cue through a local adapter, then stitch the WAV track."""
     if not cues:
         raise ValueError("at least one subtitle cue is required")
+    destination = Path(output_path)
+    if destination.exists():
+        raise FileExistsError(destination)
+    if not destination.parent.is_dir():
+        raise DubbingError("output directory does not exist")
     with tempfile.TemporaryDirectory(prefix="sokhan-dub-") as temporary:
         directory = Path(temporary)
         audio_paths: dict[int, Path] = {}
