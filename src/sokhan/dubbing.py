@@ -125,22 +125,22 @@ def stitch_srt_audio(
     stream = destination.open("xb")
     try:
         with stream, wave.open(stream, "wb") as output:
-                output.setnchannels(1)
-                output.setsampwidth(2)
-                output.setframerate(sample_rate)
-                cursor = 0
-                for cue in cues:
-                    start_frame = (cue.start_ms * sample_rate + 500) // 1_000
-                    end_frame = (cue.end_ms * sample_rate + 500) // 1_000
-                    if start_frame < cursor:
-                        raise ValueError("subtitle cues collide at the output sample rate")
-                    _write_silence(output, start_frame - cursor)
-                    payload = loaded[cue.index]
-                    output.writeframesraw(payload)
-                    cursor = start_frame + len(payload) // 2
-                    _write_silence(output, end_frame - cursor)
-                    cursor = end_frame
-                _write_silence(output, total_frames - cursor)
+            output.setnchannels(1)
+            output.setsampwidth(2)
+            output.setframerate(sample_rate)
+            cursor = 0
+            for cue in cues:
+                start_frame = (cue.start_ms * sample_rate + 500) // 1_000
+                end_frame = (cue.end_ms * sample_rate + 500) // 1_000
+                if start_frame < cursor:
+                    raise ValueError("subtitle cues collide at the output sample rate")
+                _write_silence(output, start_frame - cursor)
+                payload = loaded[cue.index]
+                output.writeframesraw(payload)
+                cursor = start_frame + len(payload) // 2
+                _write_silence(output, end_frame - cursor)
+                cursor = end_frame
+            _write_silence(output, total_frames - cursor)
         return destination
     except Exception:
         destination.unlink(missing_ok=True)
