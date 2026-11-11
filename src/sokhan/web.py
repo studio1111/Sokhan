@@ -95,7 +95,11 @@ class TextPayload(BaseModel):
     register: Literal["conversational", "formal", "neutral"] = "conversational"
 
 
-UI_HTML = """<!doctype html>
+class TTSRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=20_000)
+
+
+UI_HTML = r"""<!doctype html>
 <html lang="fa" dir="rtl">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -331,7 +335,7 @@ def create_app(
         )
 
     @app.post("/api/tts")
-    def api_tts(payload: TextPayload):
+    def api_tts(payload: TTSRequest):
         with tempfile.TemporaryDirectory(prefix="sokhan-web-tts-") as temporary:
             destination = Path(temporary) / "speech.wav"
             try:
