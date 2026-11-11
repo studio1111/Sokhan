@@ -77,3 +77,32 @@ def test_synthesizer_enforces_audio_size_limit(tmp_path: Path):
     engine._opener = _Opener(_wav())
     with pytest.raises(SpeechSynthesisError, match="size limit"):
         engine.synthesize("سلام", tmp_path / "large.wav")
+
+
+
+def test_synthesizer_removes_partial_output_after_write_failure(tmp_path: Path, monkeypatch):
+    engine = LocalSpeechSynthesizer()
+    engine._opener = _Opener(_wav())
+    target = tmp_path / "partial.wav"
+    original_open = Path.open
+
+    class FailingWriter:
+        def __init__(self, path, *args, **kwargs):
+            self.handle = original_open(path, *args, **kwargs)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            self.handle.close()
+            return False
+
+        def write(self, payload):
+            self.handle.write(payload[:4])
+            raise OSError("simulated disk write failure")
+
+    monkeypatch.setattr(Path, "open", lambda path, *args, **kwargs:
+                        FailingWriter(path, *args, **kwargs))
+    with pytest.raises(SpeechSynthesisError, match="local speech request failed"):
+        engine.synthesize("سلام", target)
+    assert not target.exists()
