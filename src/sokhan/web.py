@@ -13,7 +13,6 @@ from pydantic import BaseModel, Field
 from .contracts import Translator
 from .pdf import extract_pdf_text, translate_pdf
 from .subtitles import dump_srt, parse_srt
-from .text import normalize_persian
 from .vtt import dump_vtt, parse_vtt
 from .workflows import audio_to_srt, translate_srt, translate_text
 
@@ -209,7 +208,18 @@ def create_app(
                     or parsed.fragment
                 ):
                     return JSONResponse({"detail": "cross-origin requests are not allowed"}, status_code=403)
-        return await call_next(request)
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "no-referrer"
+        response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
+        response.headers["Cache-Control"] = "no-store"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; "
+            "connect-src 'self'; media-src 'self' blob:; base-uri 'none'; "
+            "form-action 'self'; frame-ancestors 'none'"
+        )
+        return response
 
     @app.get("/", response_class=HTMLResponse)
     def home():
