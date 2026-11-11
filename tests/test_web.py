@@ -176,3 +176,64 @@ def test_web_pdf_translation_uses_uploaded_font_in_temporary_storage(tmp_path, m
     assert captured["font_path"].parent.name.startswith("sokhan-web-pdf-")
     assert captured["font_bytes"] == b"\x00\x01\x00\x00trusted-test-font-bytes"
     assert not captured["font_path"].exists()
+
+
+def test_request_limit_middleware_rejects_duplicate_and_invalid_content_lengths():
+    import asyncio
+
+    from sokhan.web import RequestLimitMiddleware
+
+    async def app(_scope, _receive, _send):
+        raise AssertionError("oversized or malformed headers must be rejected before app execution")
+
+    async def run(headers):
+        sent = []
+
+        async def receive():
+            return {"type": "http.request", "body": b"", "more_body": False}
+
+        async def send(message):
+            sent.append(message)
+
+        scope = {"type": "http", "method": "POST", "headers": headers}
+        await RequestLimitMiddleware(app, max_bytes=16)(scope, receive, send)
+        return sent[0]["status"]
+
+    assert asyncio.run(run([(b"content-length", b"4"), (b"content-length", b"8")])) == 413
+    assert asyncio.run(run([(b"content-length", b"-1")])) == 413
+    assert asyncio.run(run([(b"content-length", b"not-a-number")])) == 413
+
+
+def test_request_limit_middleware_caps_chunked_body_without_content_length():
+    import asyncio
+
+    from sokhan.web import RequestLimitMiddleware
+
+    async def app(_scope, receive, send):
+        while True:
+            message = await receive()
+            if not message.get("more_body"):
+                break
+        await send({"type": "http.response.start", "status": 200, "headers": []})
+        await send({"type": "http.response.body", "body": b"ok"})
+
+    async def run():
+        sent = []
+        chunks = iter([
+            {"type": "http.request", "body": b"123456789", "more_body": True},
+            {"type": "http.request", "body": b"abcdefgh", "more_body": False},
+        ])
+
+        async def receive():
+            return next(chunks)
+
+        async def send(message):
+            sent.append(message)
+
+        scope = {"type": "http", "method": "POST", "headers": []}
+        await RequestLimitMiddleware(app, max_bytes=16)(scope, receive, send)
+        return sent
+
+    sent = asyncio.run(run())
+    assert sent[0]["status"] == 413
+    assert sent[-1]["body"] == b'{"detail":"request body exceeds the configured server limit"}'
