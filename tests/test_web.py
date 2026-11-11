@@ -164,7 +164,7 @@ def test_web_pdf_translation_uses_uploaded_font_in_temporary_storage(tmp_path, m
         "/api/pdf/translate",
         files={
             "file": ("source.pdf", b"%PDF-1.4\\n", "application/pdf"),
-            "font_file": ("../../custom.ttf", b"trusted-test-font-bytes", "font/ttf"),
+            "font_file": ("../../custom.ttf", b"\\x00\\x01\\x00\\x00trusted-test-font-bytes", "font/ttf"),
         },
         data={"register": "formal"},
         headers=LOCAL_HEADERS,
@@ -174,5 +174,5 @@ def test_web_pdf_translation_uses_uploaded_font_in_temporary_storage(tmp_path, m
     assert response.content.startswith(b"%PDF-")
     assert captured["font_path"].name == "font.ttf"
     assert captured["font_path"].parent.name.startswith("sokhan-web-pdf-")
-    assert captured["font_bytes"] == b"trusted-test-font-bytes"
+    assert captured["font_bytes"] == b"\\x00\\x01\\x00\\x00trusted-test-font-bytes"
     assert not captured["font_path"].exists()
