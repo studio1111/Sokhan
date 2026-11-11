@@ -1,4 +1,4 @@
-"""Command-line interface for deterministic text and subtitle utilities."""
+"""Command-line interface for text, subtitles, and audio ingestion."""
 
 from __future__ import annotations
 
@@ -6,10 +6,13 @@ import argparse
 import sys
 from pathlib import Path
 
+from .asr import FasterWhisperASR
+from .media import extract_audio
 from .pdf import extract_pdf_text
 from .subtitles import dump_srt, parse_srt, retime_cues
 from .text import normalize_persian
 from .translation import translator_from_env
+from .workflows import audio_to_srt
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -26,6 +29,16 @@ def build_parser() -> argparse.ArgumentParser:
     srt = commands.add_parser("srt-check", help="validate and optionally clamp SRT timings")
     srt.add_argument("input")
     srt.add_argument("--max-duration-ms", type=int)
+    audio = commands.add_parser("extract-audio", help="extract mono WAV audio from a media file")
+    audio.add_argument("input")
+    audio.add_argument("output")
+    dubbing = commands.add_parser("audio-to-srt", help="transcribe English audio and translate to Persian SRT")
+    dubbing.add_argument("input")
+    dubbing.add_argument("output")
+    dubbing.add_argument("--asr-model", default="small.en")
+    dubbing.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
+    dubbing.add_argument("--register", choices=("conversational", "formal", "neutral"),
+                         default="conversational")
     return parser
 
 
@@ -48,6 +61,12 @@ def main() -> int:
         elif args.command == "srt-check":
             cues = parse_srt(Path(args.input).read_text(encoding="utf-8"))
             print(dump_srt(retime_cues(cues, max_end_ms=args.max_duration_ms)), end="")
+        elif args.command == "extract-audio":
+            extract_audio(args.input, args.output)
+        elif args.command == "audio-to-srt":
+            asr = FasterWhisperASR(model_name=args.asr_model, device=args.device)
+            cues = audio_to_srt(args.input, asr, translator_from_env(), register=args.register)
+            Path(args.output).write_text(dump_srt(cues), encoding="utf-8")
         return 0
     except (OSError, ValueError, RuntimeError) as exc:
         print(f"sokhan: {exc}", file=sys.stderr)
