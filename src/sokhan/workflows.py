@@ -35,3 +35,22 @@ def audio_to_srt(audio_path: str | Path, asr, translator: Translator, *,
         for index, segment in enumerate(segments, start=1)
     ]
     return cues
+
+
+def audio_to_dub(
+    audio_path: str | Path,
+    asr,
+    translator: Translator,
+    synthesizer,
+    output_path: str | Path,
+    *,
+    register: str = "conversational",
+    media_duration_ms: int | None = None,
+) -> Path:
+    """Run local English ASR, Persian translation, cue synthesis, and WAV stitching."""
+    from .dubbing import synthesize_srt
+
+    cues = audio_to_srt(audio_path, asr, translator, register=register)
+    return synthesize_srt(
+        cues, synthesizer, output_path, media_duration_ms=media_duration_ms
+    )
