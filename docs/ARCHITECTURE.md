@@ -8,7 +8,7 @@ Sokhan is a local-first English-to-Iranian-Persian language workflow toolkit. Th
 
 1. **Domain contracts** — immutable requests, translation results, timed speech segments, speaker and emotion metadata.
 2. **Deterministic core** — Persian normalization, SRT parsing/serialization/retiming, input validation.
-3. **Adapters** — local translation endpoint, optional ASR/TTS/PDF engines. Adapters are explicitly selected; no implicit cloud fallback.
+3. **Adapters** — local translation endpoint, optional ASR/TTS/PDF engines, and opt-in PyMuPDF/Tesseract OCR. Adapters are explicitly selected; no implicit cloud fallback.
 4. **Orchestration** — text, document, audio, and subtitle pipelines compose adapters and preserve provenance.
 5. **Interfaces** — Python API, CLI, reusable GitHub Action, later desktop/web UI.
 6. **Evaluation and governance** — licensed test corpus, human-rated Persian naturalness, semantic adequacy, timing drift, speaker similarity, latency, memory, and cost.
