@@ -45,7 +45,7 @@ def test_speech_json_is_deterministic_and_unicode_friendly():
     output = dump_speech_json(segments)
 
     assert "سلام" in output
-    assert output.endswith("\\n")
+    assert output.endswith("\n")
     assert output == dump_speech_json(segments)
 
 
