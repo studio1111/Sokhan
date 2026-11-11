@@ -236,4 +236,4 @@ def test_request_limit_middleware_caps_chunked_body_without_content_length():
 
     sent = asyncio.run(run())
     assert sent[0]["status"] == 413
-    assert sent[-1]["body"] == b'{"detail":"request body exceeds the 100 MiB server limit"}'
+    assert sent[-1]["body"] == b'{"detail":"request body exceeds the configured server limit"}'
