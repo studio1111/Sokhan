@@ -27,6 +27,7 @@ _MAX_PDF_OUTPUT_BYTES = 50 * 1024 * 1024
 _ALLOWED_ASR_MODELS = {"tiny.en", "base.en", "small.en", "medium.en", "large-v3"}
 _ALLOWED_REGISTERS = {"conversational", "formal", "neutral"}
 _UPLOAD_REQUIRED = File(...)
+_FONT_UPLOAD_REQUIRED = File(...)
 
 
 class _RequestTooLarge(Exception):
@@ -93,7 +94,9 @@ class RequestLimitMiddleware:
 
 class TextPayload(BaseModel):
     text: str = Field(min_length=1, max_length=100_000)
-    register: Literal["conversational", "formal", "neutral"] = "conversational"
+    translation_register: Literal["conversational", "formal", "neutral"] = Field(
+        default="conversational", alias="register"
+    )
 
 
 class TTSRequest(BaseModel):
@@ -129,7 +132,7 @@ button:disabled{opacity:.55;cursor:wait}.output{white-space:pre-wrap;overflow-wr
 <button id="downloadSubtitle" disabled>دریافت فایل ترجمه‌شده</button></section>
 <section><h2>استخراج PDF</h2><label for="pdfFile">فایل PDF متنی</label><input id="pdfFile" type="file" accept=".pdf,application/pdf">
 <button id="extractPdf">استخراج متن</button><div class="status" id="pdfStatus" aria-live="polite"></div><pre class="output" id="pdfOutput"></pre>
-<label for="fontPath">مسیر فونت TTF فارسی روی همین دستگاه</label><input id="fontPath" placeholder="/path/to/Persian.ttf">
+<label for="fontFile">فایل فونت TTF فارسی</label><input id="fontFile" type="file" accept=".ttf,font/ttf">
 <button id="translatePdf">ترجمه PDF به فارسی</button></section>
 <section><h2>تبدیل صوت به زیرنویس</h2><label for="audioFile">فایل صوتی یا ویدئو</label><input id="audioFile" type="file" accept="audio/*,video/*">
 <label for="asrModel">مدل تشخیص گفتار انگلیسی</label><select id="asrModel"><option>tiny.en</option><option>base.en</option><option selected>small.en</option><option>medium.en</option><option>large-v3</option></select>
@@ -147,7 +150,7 @@ $('translateText').onclick=async()=>{show('textStatus','در حال ترجمه�
 $('translateSubtitle').onclick=async()=>{const file=$('subtitleFile').files[0];if(!file){show('subtitleStatus','ابتدا فایل زیرنویس را انتخاب کنید');return}show('subtitleStatus','در حال پردازش…');try{const ext=file.name.toLowerCase().split('.').pop();const form=new FormData();form.append('file',file);form.append('register',$('register').value);const r=await request(ext==='vtt'?'/api/vtt/translate':'/api/srt/translate',{method:'POST',body:form});const text=await r.text();subtitleBlob=new Blob([text],{type:'text/plain;charset=utf-8'});show('subtitleOutput',text);$('downloadSubtitle').disabled=false;show('subtitleStatus','تمام شد')}catch(e){show('subtitleStatus',e.message)}};
 $('downloadSubtitle').onclick=()=>{if(subtitleBlob)download(subtitleBlob,$('subtitleFile').files[0].name.replace(/\.(srt|vtt)$/i,'.fa.$1'))};
 $('extractPdf').onclick=async()=>{const file=$('pdfFile').files[0];if(!file){show('pdfStatus','ابتدا PDF را انتخاب کنید');return}show('pdfStatus','در حال استخراج…');try{const form=new FormData();form.append('file',file);const r=await request('/api/pdf/extract',{method:'POST',body:form});show('pdfOutput',(await r.json()).text);show('pdfStatus','تمام شد')}catch(e){show('pdfStatus',e.message)}};
-$('translatePdf').onclick=async()=>{const file=$('pdfFile').files[0];if(!file||!$('fontPath').value.trim()){show('pdfStatus','PDF و مسیر فونت TTF لازم است');return}show('pdfStatus','در حال ترجمه و ساخت PDF…');try{const form=new FormData();form.append('file',file);form.append('font_path',$('fontPath').value.trim());form.append('register',$('register').value);const r=await request('/api/pdf/translate',{method:'POST',body:form});download(await r.blob(),'sokhan-fa.pdf');show('pdfStatus','PDF آماده شد')}catch(e){show('pdfStatus',e.message)}};
+$('translatePdf').onclick=async()=>{const file=$('pdfFile').files[0];const font=$('fontFile').files[0];if(!file||!font){show('pdfStatus','PDF و فایل فونت TTF لازم است');return}show('pdfStatus','در حال ترجمه و ساخت PDF…');try{const form=new FormData();form.append('file',file);form.append('font_file',font);form.append('register',$('register').value);const r=await request('/api/pdf/translate',{method:'POST',body:form});download(await r.blob(),'sokhan-fa.pdf');show('pdfStatus','PDF آماده شد')}catch(e){show('pdfStatus',e.message)}};
 $('audioToSrt').onclick=async()=>{const file=$('audioFile').files[0];if(!file){show('audioStatus','ابتدا فایل صوتی را انتخاب کنید');return}show('audioStatus','مدل ASR در حال اجراست؛ اولین اجرا ممکن است زمان‌بر باشد…');try{const form=new FormData();form.append('file',file);form.append('asr_model',$('asrModel').value);form.append('device','cpu');form.append('register',$('register').value);const r=await request('/api/audio/srt',{method:'POST',body:form});const text=await r.text();show('audioOutput',text);download(new Blob([text],{type:'text/plain;charset=utf-8'}),'captions.fa.srt');show('audioStatus','تمام شد')}catch(e){show('audioStatus',e.message)}};
 $('makeTts').onclick=async()=>{show('ttsStatus','در حال تولید صدا…');try{const r=await request('/api/tts',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:$('ttsText').value})});const url=URL.createObjectURL(await r.blob());$('ttsPlayer').src=url;show('ttsStatus','فایل صوتی آماده است')}catch(e){show('ttsStatus',e.message)}};
 </script>
@@ -234,7 +237,9 @@ def create_app(
     @app.post("/api/translate")
     def api_translate(payload: TextPayload):
         try:
-            result = translate_text(payload.text, translator_provider(), register=payload.register)
+            result = translate_text(
+                payload.text, translator_provider(), register=payload.translation_register
+            )
         except (ValueError, RuntimeError) as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
         return {"translation": result}
@@ -242,13 +247,13 @@ def create_app(
     @app.post("/api/srt/translate")
     def srt_translate(
         file: UploadFile = _UPLOAD_REQUIRED,
-        register: str = Form("conversational"),
+        translation_register: str = Form("conversational", alias="register"),
     ):
-        _check_register(register)
+        _check_register(translation_register)
         content = _decode_text(_read_upload(file, _MAX_SUBTITLE_BYTES))
         try:
             cues = parse_srt(content)
-            translated = translate_srt(cues, translator_provider(), register=register)
+            translated = translate_srt(cues, translator_provider(), register=translation_register)
         except (ValueError, RuntimeError) as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
         return Response(
@@ -259,14 +264,14 @@ def create_app(
     @app.post("/api/vtt/translate")
     def vtt_translate(
         file: UploadFile = _UPLOAD_REQUIRED,
-        register: str = Form("conversational"),
+        translation_register: str = Form("conversational", alias="register"),
     ):
-        _check_register(register)
+        _check_register(translation_register)
 
         content = _decode_text(_read_upload(file, _MAX_SUBTITLE_BYTES))
         try:
             cues = parse_vtt(content)
-            translated = translate_srt(cues, translator_provider(), register=register)
+            translated = translate_srt(cues, translator_provider(), register=translation_register)
         except (ValueError, RuntimeError) as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
         return Response(
@@ -291,22 +296,30 @@ def create_app(
     @app.post("/api/pdf/translate")
     def pdf_translate(
         file: UploadFile = _UPLOAD_REQUIRED,
-        font_path: str = Form(...),
-        register: str = Form("conversational"),
+        font_file: UploadFile = _FONT_UPLOAD_REQUIRED,
+        translation_register: str = Form("conversational", alias="register"),
     ):
-        _check_register(register)
+        _check_register(translation_register)
         payload = _read_upload(file, _MAX_PDF_BYTES)
         if b"%PDF-" not in payload[:1_024]:
             raise HTTPException(status_code=415, detail="uploaded file is not a PDF")
-        font = Path(font_path).expanduser()
-        if not font.is_file() or font.suffix.lower() != ".ttf" or font.stat().st_size > 20 * 1024 * 1024:
-            raise HTTPException(status_code=422, detail="font path must be an existing TTF file under 20 MiB")
+        font_name = font_file.filename or ""
+        if not font_name.lower().endswith(".ttf"):
+            raise HTTPException(status_code=415, detail="font upload must be a TrueType .ttf file")
+        font_payload = _read_upload(font_file, 20 * 1024 * 1024)
+        if (
+            len(font_payload) < 12
+            or font_payload[:4] not in {b"\x00\x01\x00\x00", b"true", b"typ1"}
+        ):
+            raise HTTPException(status_code=415, detail="uploaded font has an invalid TrueType signature")
         with tempfile.TemporaryDirectory(prefix="sokhan-web-pdf-") as temporary:
             source = Path(temporary) / "source.pdf"
+            font = Path(temporary) / "font.ttf"
             destination = Path(temporary) / "translated.fa.pdf"
             source.write_bytes(payload)
+            font.write_bytes(font_payload)
             try:
-                translate_pdf(source, destination, translator_provider(), font_path=font, register=register)
+                translate_pdf(source, destination, translator_provider(), font_path=font, register=translation_register)
             except (ValueError, RuntimeError, OSError) as exc:
                 raise HTTPException(status_code=422, detail=str(exc)) from exc
             if destination.stat().st_size > _MAX_PDF_OUTPUT_BYTES:
@@ -322,9 +335,9 @@ def create_app(
         file: UploadFile = _UPLOAD_REQUIRED,
         asr_model: str = Form("small.en"),
         device: str = Form("cpu"),
-        register: str = Form("conversational"),
+        translation_register: str = Form("conversational", alias="register"),
     ):
-        _check_register(register)
+        _check_register(translation_register)
         if asr_model not in _ALLOWED_ASR_MODELS or device not in {"cpu", "cuda"}:
             raise HTTPException(status_code=422, detail="unsupported ASR model or device")
         payload = _read_upload(file, _MAX_AUDIO_BYTES)
@@ -336,7 +349,7 @@ def create_app(
             source.write_bytes(payload)
             try:
                 cues = audio_to_srt(
-                    source, asr_provider(asr_model, device), translator_provider(), register=register
+                    source, asr_provider(asr_model, device), translator_provider(), register=translation_register
                 )
             except (ValueError, RuntimeError, OSError) as exc:
                 raise HTTPException(status_code=422, detail=str(exc)) from exc
