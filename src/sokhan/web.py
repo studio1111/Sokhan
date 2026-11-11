@@ -3,7 +3,8 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
-from typing import Callable, Literal
+from collections.abc import Callable
+from typing import Literal
 from urllib.parse import urlsplit
 
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
