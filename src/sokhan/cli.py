@@ -129,7 +129,7 @@ def main() -> int:
             report = benchmark_speech(texts, synthesizer_from_env())
             _write_new_file(
                 args.output,
-                json.dumps(asdict(report), ensure_ascii=False, indent=2, sort_keys=True) + "\\n",
+                json.dumps(asdict(report), ensure_ascii=False, indent=2, sort_keys=True) + "\n",
             )
         elif args.command == "audio-to-srt":
             asr = FasterWhisperASR(model_name=args.asr_model, device=args.device)
