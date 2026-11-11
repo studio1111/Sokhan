@@ -13,7 +13,7 @@ authors = [{ name = "Sokhan contributors" }]
 dependencies = []
 
 [project.optional-dependencies]
-pdf = ["pypdf>=5.0,<7", "fpdf2>=2.8,<3", "uharfbuzz>=0.39,<1"]
+pdf = ["pypdf>=5.0,<8", "fpdf2>=2.8,<3", "uharfbuzz>=0.39,<1"]
 audio = ["faster-whisper>=1.1,<2"]
 dev = ["pytest>=8.3,<10", "ruff>=0.8,<1"]
 
