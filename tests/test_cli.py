@@ -22,3 +22,22 @@ def test_srt_fit_cli_requires_media_duration():
     ])
     assert args.command == "srt-fit"
     assert args.media_duration_ms == 120000
+
+
+def test_srt_to_dub_cli_accepts_optional_media_duration():
+    args = build_parser().parse_args([
+        "srt-to-dub", "captions.fa.srt", "dub.wav", "--media-duration-ms", "90000",
+    ])
+    assert args.command == "srt-to-dub"
+    assert args.media_duration_ms == 90000
+
+
+def test_audio_to_dub_cli_accepts_local_asr_options():
+    args = build_parser().parse_args([
+        "audio-to-dub", "source.wav", "dub.wav", "--asr-model", "small.en",
+        "--device", "cpu", "--register", "formal",
+    ])
+    assert args.command == "audio-to-dub"
+    assert args.asr_model == "small.en"
+    assert args.device == "cpu"
+    assert args.register == "formal"
