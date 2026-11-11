@@ -14,7 +14,7 @@ from .subtitles import dump_srt, parse_srt, retime_cues, retime_cues_for_readabi
 from .text import normalize_persian
 from .translation import translator_from_env
 from .vtt import dump_vtt, parse_vtt
-from .workflows import audio_to_srt, translate_srt
+from .workflows import audio_to_dub, audio_to_srt, translate_srt
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -58,6 +58,18 @@ def build_parser() -> argparse.ArgumentParser:
     dubbing.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
     dubbing.add_argument("--register", choices=("conversational", "formal", "neutral"),
                          default="conversational")
+    srt_dub = commands.add_parser("srt-to-dub", help="synthesize Persian SRT cues into a timed WAV track")
+    srt_dub.add_argument("input")
+    srt_dub.add_argument("output")
+    srt_dub.add_argument("--media-duration-ms", type=int)
+    audio_dub = commands.add_parser("audio-to-dub", help="transcribe, translate, and dub English audio locally")
+    audio_dub.add_argument("input")
+    audio_dub.add_argument("output")
+    audio_dub.add_argument("--asr-model", default="small.en")
+    audio_dub.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
+    audio_dub.add_argument("--register", choices=("conversational", "formal", "neutral"),
+                            default="conversational")
+    audio_dub.add_argument("--media-duration-ms", type=int)
     for name, help_text in (
         ("translate-srt", "translate SRT cue text to Persian"),
         ("translate-vtt", "translate WebVTT cue text to Persian"),
@@ -116,6 +128,18 @@ def main() -> int:
             asr = FasterWhisperASR(model_name=args.asr_model, device=args.device)
             cues = audio_to_srt(args.input, asr, translator_from_env(), register=args.register)
             _write_new_file(args.output, dump_srt(cues))
+        elif args.command == "srt-to-dub":
+            cues = parse_srt(Path(args.input).read_text(encoding="utf-8"))
+            synthesize_srt(
+                cues, synthesizer_from_env(), args.output,
+                media_duration_ms=args.media_duration_ms,
+            )
+        elif args.command == "audio-to-dub":
+            asr = FasterWhisperASR(model_name=args.asr_model, device=args.device)
+            audio_to_dub(
+                args.input, asr, translator_from_env(), synthesizer_from_env(), args.output,
+                register=args.register, media_duration_ms=args.media_duration_ms,
+            )
         elif args.command == "translate-srt":
             cues = translate_srt(
                 parse_srt(Path(args.input).read_text(encoding="utf-8")),
