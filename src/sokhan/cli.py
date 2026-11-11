@@ -10,7 +10,7 @@ from .asr import FasterWhisperASR
 from .media import extract_audio
 from .pdf import extract_pdf_text, translate_pdf
 from .speech import synthesizer_from_env
-from .subtitles import dump_srt, parse_srt, retime_cues
+from .subtitles import dump_srt, parse_srt, retime_cues, retime_cues_for_readability
 from .text import normalize_persian
 from .translation import translator_from_env
 from .vtt import dump_vtt, parse_vtt
@@ -37,6 +37,12 @@ def build_parser() -> argparse.ArgumentParser:
     srt = commands.add_parser("srt-check", help="validate and optionally clamp SRT timings")
     srt.add_argument("input")
     srt.add_argument("--max-duration-ms", type=int)
+    fit = commands.add_parser("srt-fit", help="extend subtitle display time to a readable rate")
+    fit.add_argument("input")
+    fit.add_argument("output")
+    fit.add_argument("--media-duration-ms", type=int, required=True)
+    fit.add_argument("--max-cps", type=float, default=17.0)
+    fit.add_argument("--min-duration-ms", type=int, default=1_000)
     vtt = commands.add_parser("vtt-check", help="validate and normalize WebVTT timings")
     vtt.add_argument("input")
     audio = commands.add_parser("extract-audio", help="extract mono WAV audio from a media file")
@@ -92,6 +98,14 @@ def main() -> int:
         elif args.command == "srt-check":
             cues = parse_srt(Path(args.input).read_text(encoding="utf-8"))
             print(dump_srt(retime_cues(cues, max_end_ms=args.max_duration_ms)), end="")
+        elif args.command == "srt-fit":
+            cues = retime_cues_for_readability(
+                parse_srt(Path(args.input).read_text(encoding="utf-8")),
+                media_end_ms=args.media_duration_ms,
+                max_chars_per_second=args.max_cps,
+                min_duration_ms=args.min_duration_ms,
+            )
+            _write_new_file(args.output, dump_srt(cues))
         elif args.command == "vtt-check":
             print(dump_vtt(parse_vtt(Path(args.input).read_text(encoding="utf-8"))), end="")
         elif args.command == "extract-audio":
