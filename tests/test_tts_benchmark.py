@@ -15,7 +15,7 @@ class FakeSynthesizer:
             output.setnchannels(1)
             output.setsampwidth(2)
             output.setframerate(8_000)
-            output.writeframes(b"\x00\\x00" * 4_000)
+            output.writeframes(b"\x00\x00" * 4_000)
         return output_path
 
 
@@ -65,7 +65,7 @@ def test_benchmark_rejects_mixed_sample_rates():
                 output.setnchannels(1)
                 output.setsampwidth(2)
                 output.setframerate(8_000 if self.count == 1 else 16_000)
-                output.writeframes(b"\x00\\x00" * 100)
+                output.writeframes(b"\x00\x00" * 100)
 
     with pytest.raises(ValueError, match="same sample rate"):
         benchmark_speech(["one", "two"], MixedRateSynthesizer())
