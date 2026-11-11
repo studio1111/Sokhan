@@ -108,7 +108,7 @@ def write_persian_pdf(text: str, output_path: str | Path, font_path: str | Path)
         )
         for paragraph in text.split("\n"):
             if paragraph.strip():
-                document.multi_cell(w=0, h=8, text=paragraph, align="R")
+                document.multi_cell(w=document.epw, h=8, text=paragraph, align="R")
             else:
                 document.ln(3)
         payload = bytes(document.output())
