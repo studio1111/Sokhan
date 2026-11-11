@@ -85,6 +85,7 @@ sokhan translate input.txt --register conversational
 ## CI و نگه‌داری
 
 - تست Python و Ruff روی Python 3.11 تا 3.13.
+- تحلیل امنیتی CodeQL و به‌روزرسانی هفتگی وابستگی‌ها با Dependabot.
 - تست مستقل سیاست retention با Node.js.
 - گردش‌کار روزانه فقط ۳۰ اجرای کامل‌شدهٔ آخر هر workflow را نگه می‌دارد؛ اجراهای درحال‌اجرا حذف نمی‌شوند.
 - گردش‌کار کیفیت هفتگی گزارش deterministic تولید می‌کند.
