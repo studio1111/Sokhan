@@ -17,7 +17,7 @@ class DubbingError(RuntimeError):
     """Raised when local dubbing audio cannot be assembled safely."""
 
 
-def _read_pcm16_mono(path: Path) -> tuple[int, int, bytes]:
+def _read_pcm16_mono(path: Path, *, max_bytes: int) -> tuple[int, int, bytes]:
     try:
         with wave.open(str(path), "rb") as source:
             if source.getcomptype() != "NONE":
@@ -32,6 +32,8 @@ def _read_pcm16_mono(path: Path) -> tuple[int, int, bytes]:
             frame_count = source.getnframes()
             if frame_count < 1:
                 raise ValueError(f"cue audio is empty: {path.name}")
+            if frame_count * 2 > max_bytes:
+                raise ValueError("total synthesized cue audio exceeds 256 MiB")
             payload = source.readframes(frame_count)
             if len(payload) != frame_count * 2:
                 raise ValueError(f"cue audio is truncated: {path.name}")
@@ -103,7 +105,9 @@ def stitch_srt_audio(
             raise FileNotFoundError(f"synthesized audio does not exist for cue {cue.index}")
         if source.resolve() == destination.resolve():
             raise DubbingError("output path cannot overwrite a cue audio input")
-        rate, frame_count, payload = _read_pcm16_mono(source)
+        rate, frame_count, payload = _read_pcm16_mono(
+            source, max_bytes=_MAX_TOTAL_AUDIO_BYTES - total_audio_bytes
+        )
         if sample_rate is None:
             sample_rate = rate
         elif rate != sample_rate:
