@@ -37,8 +37,8 @@ def test_vtt_readability_fit_extends_cue_without_overlapping_next():
     from sokhan.vtt import retime_vtt_for_readability
 
     cues = parse_vtt(
-        "WEBVTT\\n\\n00:00:00.000 --> 00:00:00.400\\nA short Persian translation\\n\\n"
-        "00:00:03.000 --> 00:00:03.500\\nNext"
+        "WEBVTT\n\n00:00:00.000 --> 00:00:00.400\nA short Persian translation\n\n"
+        "00:00:03.000 --> 00:00:03.500\nNext"
     )
     fitted = retime_vtt_for_readability(
         cues, media_end_ms=5_000, max_chars_per_second=100, min_duration_ms=1_200
@@ -51,7 +51,7 @@ def test_vtt_readability_fit_extends_cue_without_overlapping_next():
 def test_vtt_readability_fit_rejects_impossible_timeline():
     from sokhan.vtt import retime_vtt_for_readability
 
-    cues = parse_vtt("WEBVTT\\n\\n00:00:00.000 --> 00:00:00.300\\nA very long subtitle line")
+    cues = parse_vtt("WEBVTT\n\n00:00:00.000 --> 00:00:00.300\nA very long subtitle line")
     with pytest.raises(ValueError, match="only"):
         retime_vtt_for_readability(
             cues, media_end_ms=500, max_chars_per_second=5
