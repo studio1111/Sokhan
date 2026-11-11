@@ -136,3 +136,39 @@ def test_stitch_srt_audio_rejects_oversized_wav_before_reading_payload(tmp_path:
         stitch_srt_audio(cues, {1: oversized}, output)
 
     assert not output.exists()
+
+
+def test_synthesize_srt_validates_timeline_before_calling_tts(tmp_path: Path):
+    class RecordingSynthesizer(FakeSynthesizer):
+        def synthesize(self, text, output_path):
+            super().synthesize(text, output_path)
+
+    synthesizer = RecordingSynthesizer()
+    cues = [Cue(1, 0, 500, "First"), Cue(2, 400, 800, "Overlapping")]
+    output = tmp_path / "dub.wav"
+
+    with pytest.raises(ValueError, match="overlapping"):
+        synthesize_srt(cues, synthesizer, output)
+
+    assert synthesizer.texts == []
+    assert not output.exists()
+
+
+def test_synthesize_srt_validates_media_duration_before_calling_tts(tmp_path: Path):
+    synthesizer = FakeSynthesizer()
+    cues = [Cue(1, 0, 500, "One")]
+
+    with pytest.raises(ValueError, match="covering the final cue"):
+        synthesize_srt(cues, synthesizer, tmp_path / "dub.wav", media_duration_ms=100)
+
+    assert synthesizer.texts == []
+
+
+def test_synthesize_srt_rejects_duplicate_cue_indices_before_calling_tts(tmp_path: Path):
+    synthesizer = FakeSynthesizer()
+    cues = [Cue(1, 0, 300, "First"), Cue(1, 400, 700, "Second")]
+
+    with pytest.raises(ValueError, match="indices must be strictly increasing"):
+        synthesize_srt(cues, synthesizer, tmp_path / "dub.wav")
+
+    assert synthesizer.texts == []
