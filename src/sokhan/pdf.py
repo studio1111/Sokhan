@@ -52,8 +52,8 @@ def ocr_pdf_text(
         raise ValueError("OCR language must be a simple Tesseract language code")
     if not isinstance(dpi, int) or isinstance(dpi, bool) or not 72 <= dpi <= 600:
         raise ValueError("OCR DPI must be an integer between 72 and 600")
-    if not isinstance(max_pages, int) or isinstance(max_pages, bool) or max_pages < 1:
-        raise ValueError("OCR page limit must be a positive integer")
+    if not isinstance(max_pages, int) or isinstance(max_pages, bool) or not 1 <= max_pages <= 2_000:
+        raise ValueError("OCR page limit must be an integer between 1 and 2000")
 
     try:
         import pymupdf
