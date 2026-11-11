@@ -2,7 +2,7 @@
 
 ## Product contract
 
-Sokhan is a local-first English-to-Iranian-Persian language workflow toolkit. The initial product supports text translation, PDF text extraction, English audio transcription and dubbing, and subtitle translation. Video is not re-encoded or dubbed in the initial scope: only audio extraction and subtitle workflows are supported.
+Sokhan is a local-first English-to-Iranian-Persian language workflow toolkit. The initial product supports text translation, text-PDF extraction and Persian PDF generation, English audio transcription, and subtitle translation. Word timestamps are retained when the ASR engine supplies them, but cross-lingual word alignment and audio dubbing are not yet implemented. Video is not re-encoded or dubbed in the initial scope: only audio extraction and subtitle workflows are supported.
 
 ## Layers
 
