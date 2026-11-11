@@ -46,14 +46,19 @@ class RequestLimitMiddleware:
             await self.app(scope, receive, send)
             return
 
-        headers = dict(scope.get("headers", []))
-        declared = headers.get(b"content-length")
-        if declared:
+        content_lengths = [
+            value for key, value in scope.get("headers", []) if key.lower() == b"content-length"
+        ]
+        if len(content_lengths) > 1:
+            await self._reject(send)
+            return
+        if content_lengths:
             try:
-                if int(declared) > self.max_bytes:
+                declared_text = content_lengths[0].decode("ascii")
+                if not declared_text.isdecimal() or int(declared_text) > self.max_bytes:
                     await self._reject(send)
                     return
-            except ValueError:
+            except (UnicodeDecodeError, ValueError):
                 await self._reject(send)
                 return
 
@@ -83,7 +88,7 @@ class RequestLimitMiddleware:
 
     @staticmethod
     async def _reject(send):
-        body = b'{"detail":"request body exceeds the 100 MiB server limit"}'
+        body = b'{"detail":"request body exceeds the configured server limit"}'
         await send({
             "type": "http.response.start",
             "status": 413,
