@@ -61,3 +61,98 @@ def test_pdf_writer_renders_a_persian_page_when_system_font_is_available(tmp_pat
     output = tmp_path / "persian.pdf"
     assert write_persian_pdf("سلام دنیا\nاین یک آزمون فارسی است.", output, font) == output
     assert output.read_bytes().startswith(b"%PDF")
+
+
+def test_ocr_pdf_text_uses_bounded_local_tesseract_pages(monkeypatch, tmp_path: Path):
+    import sys
+    from types import SimpleNamespace
+
+    from sokhan.pdf import ocr_pdf_text
+
+    calls = []
+
+    class Page:
+        def __init__(self, number):
+            self.number = number
+
+        def get_textpage_ocr(self, *, language, dpi, full):
+            calls.append((self.number, language, dpi, full))
+            return f"ocr-page-{self.number}"
+
+        def get_text(self, *, textpage):
+            return f"Scanned page {self.number}"
+
+    class Document:
+        is_encrypted = False
+
+        def __len__(self):
+            return 2
+
+        def __iter__(self):
+            return iter([Page(1), Page(2)])
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+    monkeypatch.setitem(sys.modules, "pymupdf", SimpleNamespace(open=lambda _path: Document()))
+    source = tmp_path / "scanned.pdf"
+    source.touch()
+
+    assert ocr_pdf_text(source, language="eng", dpi=240, max_pages=2) == (
+        "Scanned page 1\\n\\nScanned page 2"
+    )
+    assert calls == [(1, "eng", 240, True), (2, "eng", 240, True)]
+
+
+def test_ocr_pdf_text_rejects_unsafe_limits_and_language(tmp_path: Path):
+    from sokhan.pdf import ocr_pdf_text
+
+    source = tmp_path / "scanned.pdf"
+    source.touch()
+    with pytest.raises(ValueError, match="DPI"):
+        ocr_pdf_text(source, dpi=601)
+    with pytest.raises(ValueError, match="language"):
+        ocr_pdf_text(source, language="eng; touch /tmp/pwned")
+
+
+def test_ocr_pdf_text_rejects_encrypted_and_oversized_documents(monkeypatch, tmp_path: Path):
+    import sys
+    from types import SimpleNamespace
+
+    from sokhan.pdf import PDFExtractionError, ocr_pdf_text
+
+    class Document:
+        is_encrypted = True
+
+        def __len__(self):
+            return 3
+
+        def __iter__(self):
+            return iter(())
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+    monkeypatch.setitem(sys.modules, "pymupdf", SimpleNamespace(open=lambda _path: Document()))
+    source = tmp_path / "scanned.pdf"
+    source.touch()
+    with pytest.raises(PDFExtractionError, match="encrypted"):
+        ocr_pdf_text(source)
+
+    Document.is_encrypted = False
+    with pytest.raises(PDFExtractionError, match="page limit"):
+        ocr_pdf_text(source, max_pages=2)
+
+
+def test_pdf_extraction_can_explicitly_fallback_to_ocr(monkeypatch, tmp_path: Path):
+    from sokhan import pdf
+
+    monkeypatch.setattr(pdf, "ocr_pdf_text", lambda path, **kwargs: "OCR result")
+    monkeypatch.setattr(pdf, "_extract_pdf_text_native", lambda path: "")
+    assert pdf.extract_pdf_text(tmp_path / "scanned.pdf", ocr=True) == "OCR result"
