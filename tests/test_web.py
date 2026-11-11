@@ -40,7 +40,11 @@ LOCAL_HEADERS = {"host": "127.0.0.1", "origin": "http://127.0.0.1"}
 
 def test_web_home_and_health_are_available_only_on_local_host():
     client = make_client()
-    assert client.get("/", headers={"host": "127.0.0.1"}).status_code == 200
+    home = client.get("/", headers={"host": "127.0.0.1"})
+    assert home.status_code == 200
+    assert home.headers["x-frame-options"] == "DENY"
+    assert home.headers["cache-control"] == "no-store"
+    assert "default-src 'none'" in home.headers["content-security-policy"]
     assert client.get("/api/health", headers={"host": "localhost"}).json() == {
         "status": "ok", "local_only": True,
     }
