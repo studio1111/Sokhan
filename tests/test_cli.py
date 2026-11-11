@@ -22,3 +22,21 @@ def test_srt_fit_cli_requires_media_duration():
     ])
     assert args.command == "srt-fit"
     assert args.media_duration_ms == 120000
+
+
+def test_pdf_extraction_cli_requires_explicit_ocr_opt_in():
+    args = build_parser().parse_args([
+        "extract-pdf", "scan.pdf", "--ocr", "--ocr-language", "eng",
+        "--ocr-dpi", "240", "--ocr-max-pages", "12",
+    ])
+    assert args.ocr is True
+    assert args.ocr_language == "eng"
+    assert args.ocr_dpi == 240
+    assert args.ocr_max_pages == 12
+
+
+def test_pdf_translation_cli_can_enable_ocr_explicitly():
+    args = build_parser().parse_args([
+        "pdf-to-fa", "scan.pdf", "translated.pdf", "--font", "fa.ttf", "--ocr",
+    ])
+    assert args.ocr is True
