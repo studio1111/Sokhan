@@ -119,3 +119,20 @@ def test_synthesize_srt_creates_timed_dub_track(tmp_path: Path):
     params, _raw = read_wav(output)
     assert params.nframes == 8_000
     assert synthesizer.texts == ["سلام", "دنیا"]
+
+def test_stitch_srt_audio_rejects_oversized_wav_before_reading_payload(tmp_path: Path):
+    data_size = 256 * 1024 * 1024 + 2
+    header = (
+        b"RIFF" + struct.pack("<I", 36 + data_size) + b"WAVEfmt "
+        + struct.pack("<IHHIIHH", 16, 1, 1, 48_000, 96_000, 2, 16)
+        + b"data" + struct.pack("<I", data_size)
+    )
+    oversized = tmp_path / "oversized.wav"
+    oversized.write_bytes(header)
+    output = tmp_path / "dub.wav"
+    cues = [Cue(1, 0, 3_600_000, "Long cue")]
+
+    with pytest.raises(ValueError, match="256 MiB"):
+        stitch_srt_audio(cues, {1: oversized}, output)
+
+    assert not output.exists()
