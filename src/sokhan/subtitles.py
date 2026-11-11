@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import itertools
+import math
 import re
 from dataclasses import dataclass
 
@@ -85,5 +86,39 @@ def retime_cues(cues: list[Cue], *, max_end_ms: int | None = None) -> list[Cue]:
             end = min(end, max_end_ms)
         if end <= cue.start_ms:
             raise ValueError(f"cue {cue.index} has no duration after retiming")
+        result.append(Cue(cue.index, cue.start_ms, end, cue.text))
+    return result
+
+
+
+def retime_cues_for_readability(
+    cues: list[Cue],
+    *,
+    media_end_ms: int,
+    max_chars_per_second: float = 17.0,
+    min_duration_ms: int = 1_000,
+) -> list[Cue]:
+    """Extend cues to a readable character rate without crossing the next cue.
+
+    This is a deterministic heuristic, not word-level alignment. It fails when
+    the source timeline does not contain enough free time rather than creating
+    overlapping cues or silently truncating the requested reading duration.
+    """
+    if media_end_ms < 1 or max_chars_per_second <= 0 or min_duration_ms < 1:
+        raise ValueError("media duration, reading rate, and minimum duration must be positive")
+    result: list[Cue] = []
+    for position, cue in enumerate(cues):
+        next_start = cues[position + 1].start_ms if position + 1 < len(cues) else media_end_ms
+        limit = min(next_start, media_end_ms)
+        available = limit - cue.start_ms
+        required = max(
+            min_duration_ms,
+            math.ceil(len(cue.text.strip()) / max_chars_per_second * 1_000),
+        )
+        if available < required:
+            raise ValueError(
+                f"cue {cue.index} needs {required} ms for readability but only {available} ms is available"
+            )
+        end = min(max(cue.end_ms, cue.start_ms + required), limit)
         result.append(Cue(cue.index, cue.start_ms, end, cue.text))
     return result
