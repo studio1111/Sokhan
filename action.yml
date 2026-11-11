@@ -16,6 +16,22 @@ inputs:
   media-duration-ms:
     description: "Media duration in milliseconds for srt-fit"
     required: false
+  ocr:
+    description: "Enable local Tesseract OCR for scanned PDFs"
+    required: false
+    default: "false"
+  ocr-language:
+    description: "Installed Tesseract language code (for example eng or eng+fas)"
+    required: false
+    default: "eng"
+  ocr-dpi:
+    description: "OCR render DPI (72–600)"
+    required: false
+    default: "300"
+  ocr-max-pages:
+    description: "Maximum OCR pages (1–2000)"
+    required: false
+    default: "200"
   register:
     description: "Translation register"
     required: false
@@ -33,16 +49,34 @@ runs:
         SOKHAN_ACTION_FONT: ${{ inputs.font }}
         SOKHAN_ACTION_MEDIA_DURATION: ${{ inputs.media-duration-ms }}
         SOKHAN_ACTION_REGISTER: ${{ inputs.register }}
+        SOKHAN_ACTION_OCR: ${{ inputs.ocr }}
+        SOKHAN_ACTION_OCR_LANGUAGE: ${{ inputs.ocr-language }}
+        SOKHAN_ACTION_OCR_DPI: ${{ inputs.ocr-dpi }}
+        SOKHAN_ACTION_OCR_MAX_PAGES: ${{ inputs.ocr-max-pages }}
       run: |
         set -euo pipefail
-        python -m pip install --disable-pip-version-check -e "${SOKHAN_ACTION_PATH}[pdf]"
+        if [ "$SOKHAN_ACTION_OCR" = "true" ]; then
+          python -m pip install --disable-pip-version-check -e "${SOKHAN_ACTION_PATH}[pdf,ocr]"
+        else
+          python -m pip install --disable-pip-version-check -e "${SOKHAN_ACTION_PATH}[pdf]"
+        fi
         case "$SOKHAN_ACTION_COMMAND" in
           normalize-fa) sokhan normalize-fa "$SOKHAN_ACTION_INPUT" ;;
           translate) sokhan translate "$SOKHAN_ACTION_INPUT" --register "$SOKHAN_ACTION_REGISTER" ;;
-          extract-pdf) sokhan extract-pdf "$SOKHAN_ACTION_INPUT" ;;
+          extract-pdf)
+            if [ "$SOKHAN_ACTION_OCR" = "true" ]; then
+              sokhan extract-pdf "$SOKHAN_ACTION_INPUT" --ocr --ocr-language "$SOKHAN_ACTION_OCR_LANGUAGE" --ocr-dpi "$SOKHAN_ACTION_OCR_DPI" --ocr-max-pages "$SOKHAN_ACTION_OCR_MAX_PAGES"
+            else
+              sokhan extract-pdf "$SOKHAN_ACTION_INPUT"
+            fi
+            ;;
           pdf-to-fa)
             test -n "$SOKHAN_ACTION_OUTPUT" && test -n "$SOKHAN_ACTION_FONT"
-            sokhan pdf-to-fa "$SOKHAN_ACTION_INPUT" "$SOKHAN_ACTION_OUTPUT" --font "$SOKHAN_ACTION_FONT" --register "$SOKHAN_ACTION_REGISTER"
+            if [ "$SOKHAN_ACTION_OCR" = "true" ]; then
+              sokhan pdf-to-fa "$SOKHAN_ACTION_INPUT" "$SOKHAN_ACTION_OUTPUT" --font "$SOKHAN_ACTION_FONT" --register "$SOKHAN_ACTION_REGISTER" --ocr --ocr-language "$SOKHAN_ACTION_OCR_LANGUAGE" --ocr-dpi "$SOKHAN_ACTION_OCR_DPI" --ocr-max-pages "$SOKHAN_ACTION_OCR_MAX_PAGES"
+            else
+              sokhan pdf-to-fa "$SOKHAN_ACTION_INPUT" "$SOKHAN_ACTION_OUTPUT" --font "$SOKHAN_ACTION_FONT" --register "$SOKHAN_ACTION_REGISTER"
+            fi
             ;;
           srt-check) sokhan srt-check "$SOKHAN_ACTION_INPUT" ;;
           srt-fit)
