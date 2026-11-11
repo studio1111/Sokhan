@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
+from dataclasses import asdict
 from pathlib import Path
 
 from .asr import FasterWhisperASR
@@ -12,6 +14,7 @@ from .pdf import extract_pdf_text, translate_pdf
 from .speech import synthesizer_from_env
 from .subtitles import dump_srt, parse_srt, retime_cues, retime_cues_for_readability
 from .text import normalize_persian
+from .tts_benchmark import benchmark_speech
 from .translation import translator_from_env
 from .vtt import dump_vtt, parse_vtt
 from .workflows import audio_to_srt, translate_srt
@@ -51,6 +54,11 @@ def build_parser() -> argparse.ArgumentParser:
     tts = commands.add_parser("text-to-speech", help="synthesize WAV through a local TTS endpoint")
     tts.add_argument("input", nargs="?", help="text file; stdin if omitted")
     tts.add_argument("output")
+    benchmark = commands.add_parser(
+        "benchmark-tts", help="benchmark local TTS latency and PCM WAV characteristics"
+    )
+    benchmark.add_argument("input", help="UTF-8 file with one synthesis sample per non-empty line")
+    benchmark.add_argument("output", help="new JSON report path")
     dubbing = commands.add_parser("audio-to-srt", help="transcribe English audio and translate to Persian SRT")
     dubbing.add_argument("input")
     dubbing.add_argument("output")
@@ -112,6 +120,17 @@ def main() -> int:
             extract_audio(args.input, args.output)
         elif args.command == "text-to-speech":
             synthesizer_from_env().synthesize(_read_input(args.input), args.output)
+        elif args.command == "benchmark-tts":
+            texts = [
+                line.strip()
+                for line in Path(args.input).read_text(encoding="utf-8").splitlines()
+                if line.strip()
+            ]
+            report = benchmark_speech(texts, synthesizer_from_env())
+            _write_new_file(
+                args.output,
+                json.dumps(asdict(report), ensure_ascii=False, indent=2, sort_keys=True) + "\\n",
+            )
         elif args.command == "audio-to-srt":
             asr = FasterWhisperASR(model_name=args.asr_model, device=args.device)
             cues = audio_to_srt(args.input, asr, translator_from_env(), register=args.register)
