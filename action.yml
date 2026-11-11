@@ -1,0 +1,30 @@
+name: "Sokhan text and subtitle tools"
+description: "Run local-first Persian normalization, English-to-Persian translation, and SRT validation."
+inputs:
+  command:
+    description: "Sokhan CLI command"
+    required: true
+  input:
+    description: "Input file path"
+    required: true
+  register:
+    description: "Translation register"
+    required: false
+    default: "conversational"
+runs:
+  using: "composite"
+  steps:
+    - shell: bash
+      env:
+        SOKHAN_ACTION_COMMAND: ${{ inputs.command }}
+        SOKHAN_ACTION_INPUT: ${{ inputs.input }}
+        SOKHAN_ACTION_REGISTER: ${{ inputs.register }}
+      run: |
+        python -m pip install --disable-pip-version-check "$GITHUB_ACTION_PATH"
+        case "$SOKHAN_ACTION_COMMAND" in
+          normalize-fa) sokhan normalize-fa "$SOKHAN_ACTION_INPUT" ;;
+          translate) sokhan translate "$SOKHAN_ACTION_INPUT" --register "$SOKHAN_ACTION_REGISTER" ;;
+          extract-pdf) sokhan extract-pdf "$SOKHAN_ACTION_INPUT" ;;
+          srt-check) sokhan srt-check "$SOKHAN_ACTION_INPUT" ;;
+          *) echo "Unsupported Sokhan command" >&2; exit 2 ;;
+        esac

@@ -1,0 +1,36 @@
+name: Weekly quality baseline
+
+on:
+  schedule:
+    - cron: "23 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sokhan-weekly-quality
+  cancel-in-progress: false
+
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: python -m pip install -e ".[dev]"
+      - name: Run deterministic quality checks
+        run: |
+          mkdir -p reports
+          pytest -q | tee reports/weekly-tests.txt
+          ruff check . | tee reports/weekly-lint.txt
+      - name: Upload quality report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sokhan-weekly-quality-${{ github.run_number }}
+          path: reports/
+          retention-days: 30

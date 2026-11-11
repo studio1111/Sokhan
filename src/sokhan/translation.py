@@ -1,0 +1,78 @@
+"""Local OpenAI-compatible translation adapter; no implicit cloud fallback."""
+
+from __future__ import annotations
+
+import json
+import os
+from urllib.parse import urlparse
+from urllib.request import Request, urlopen
+from urllib.error import HTTPError, URLError
+
+from .contracts import TranslationRequest, TranslationResult
+from .text import normalize_persian, prepare_translation_text
+
+
+class TranslationError(RuntimeError):
+    """Raised when the configured local translation service fails."""
+
+
+def _validate_endpoint(endpoint: str, allow_external: bool) -> str:
+    parsed = urlparse(endpoint)
+    if parsed.scheme != "http" or not parsed.hostname or parsed.username or parsed.password:
+        raise ValueError("endpoint must be an http URL without embedded credentials")
+    if parsed.hostname.lower() not in {"localhost", "127.0.0.1", "::1"} and not allow_external:
+        raise ValueError("external endpoints are disabled; set allow_external=True explicitly")
+    if parsed.path not in {"", "/"}:
+        raise ValueError("endpoint must be a base URL without a path")
+    return endpoint.rstrip("/")
+
+
+class LocalChatTranslator:
+    """Use a local OpenAI-compatible chat-completions server (for example llama.cpp)."""
+
+    def __init__(self, endpoint: str = "http://127.0.0.1:1234", model: str = "local-model",
+                 *, allow_external: bool = False, timeout_seconds: float = 90) -> None:
+        if timeout_seconds <= 0:
+            raise ValueError("timeout_seconds must be positive")
+        self.endpoint = _validate_endpoint(endpoint, allow_external)
+        self.model = model
+        self.timeout_seconds = timeout_seconds
+
+    def translate(self, request: TranslationRequest) -> TranslationResult:
+        source = prepare_translation_text(request.text)
+        system = (
+            "You are an expert English-to-Iranian-Persian translator. Return only Persian. "
+            "Preserve meaning, names, numbers, humor, intent and emotional force. "
+            "Use natural contemporary Persian. Do not summarize or add commentary. "
+            f"Register: {request.register}."
+        )
+        payload = {"model": self.model, "temperature": 0.2, "messages": [
+            {"role": "system", "content": system}, {"role": "user", "content": source}]}
+        req = Request(f"{self.endpoint}/v1/chat/completions",
+                      data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+                      headers={"Content-Type": "application/json"}, method="POST")
+        try:
+            with urlopen(req, timeout=self.timeout_seconds) as response:
+                if response.status != 200:
+                    raise TranslationError(f"translation service returned HTTP {response.status}")
+                raw = response.read(4 * 1024 * 1024 + 1)
+            if len(raw) > 4 * 1024 * 1024:
+                raise TranslationError("translation response exceeded 4 MiB")
+            data = json.loads(raw.decode("utf-8"))
+            translated = data["choices"][0]["message"]["content"]
+            if not isinstance(translated, str) or not translated.strip():
+                raise TranslationError("translation service returned empty content")
+            return TranslationResult(normalize_persian(translated), self.model)
+        except TranslationError:
+            raise
+        except (HTTPError, URLError, TimeoutError, KeyError, IndexError, TypeError,
+                UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise TranslationError("local translation request failed") from exc
+
+
+def translator_from_env() -> LocalChatTranslator:
+    return LocalChatTranslator(
+        endpoint=os.getenv("SOKHAN_LLM_BASE_URL", "http://127.0.0.1:1234"),
+        model=os.getenv("SOKHAN_LLM_MODEL", "local-model"),
+        allow_external=os.getenv("SOKHAN_ALLOW_EXTERNAL_PROVIDER", "").lower() == "true",
+    )
