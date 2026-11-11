@@ -6,29 +6,51 @@ import json
 import os
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
-from urllib.request import Request, urlopen
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 from .contracts import TranslationRequest, TranslationResult
 from .text import normalize_persian, prepare_translation_text
 
 
 class TranslationError(RuntimeError):
-    """Raised when the configured local translation service fails."""
+    """Raised when the configured translation service fails."""
+
+
+class _NoRedirect(HTTPRedirectHandler):
+    """Prevent a trusted endpoint from redirecting private text to another host."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
 
 
 def _validate_endpoint(endpoint: str, allow_external: bool) -> str:
     parsed = urlparse(endpoint)
-    if parsed.scheme != "http" or not parsed.hostname or parsed.username or parsed.password:
-        raise ValueError("endpoint must be an http URL without embedded credentials")
-    if parsed.hostname.lower() not in {"localhost", "127.0.0.1", "::1"} and not allow_external:
-        raise ValueError("external endpoints are disabled; set allow_external=True explicitly")
-    if parsed.path not in {"", "/"}:
-        raise ValueError("endpoint must be a base URL without a path")
+    if parsed.scheme not in {"http", "https"} or not parsed.hostname:
+        raise ValueError("endpoint must be an HTTP(S) URL")
+    if parsed.username or parsed.password:
+        raise ValueError("endpoint must not contain embedded credentials")
+    try:
+        parsed.port
+    except ValueError as exc:
+        raise ValueError("endpoint contains an invalid port") from exc
+
+    host = parsed.hostname.lower()
+    local = host in {"localhost", "127.0.0.1", "::1"}
+    if parsed.path not in {"", "/"} or parsed.query or parsed.fragment:
+        raise ValueError("endpoint must be a base URL without path, query, or fragment")
+    if local:
+        if parsed.scheme != "http" and parsed.scheme != "https":
+            raise ValueError("local endpoint must use HTTP or HTTPS")
+    else:
+        if not allow_external:
+            raise ValueError("external endpoints are disabled; set allow_external=True explicitly")
+        if parsed.scheme != "https":
+            raise ValueError("remote endpoints require HTTPS, even when external access is enabled")
     return endpoint.rstrip("/")
 
 
 class LocalChatTranslator:
-    """Use a local OpenAI-compatible chat-completions server (for example llama.cpp)."""
+    """Use a local or explicitly enabled HTTPS OpenAI-compatible chat endpoint."""
 
     def __init__(self, endpoint: str = "http://127.0.0.1:1234", model: str = "local-model",
                  *, allow_external: bool = False, timeout_seconds: float = 90) -> None:
@@ -37,6 +59,7 @@ class LocalChatTranslator:
         self.endpoint = _validate_endpoint(endpoint, allow_external)
         self.model = model
         self.timeout_seconds = timeout_seconds
+        self._opener = build_opener(_NoRedirect())
 
     def translate(self, request: TranslationRequest) -> TranslationResult:
         source = prepare_translation_text(request.text)
@@ -52,7 +75,7 @@ class LocalChatTranslator:
                       data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
                       headers={"Content-Type": "application/json"}, method="POST")
         try:
-            with urlopen(req, timeout=self.timeout_seconds) as response:
+            with self._opener.open(req, timeout=self.timeout_seconds) as response:
                 if response.status != 200:
                     raise TranslationError(f"translation service returned HTTP {response.status}")
                 raw = response.read(4 * 1024 * 1024 + 1)
@@ -67,7 +90,7 @@ class LocalChatTranslator:
             raise
         except (HTTPError, URLError, TimeoutError, KeyError, IndexError, TypeError,
                 UnicodeDecodeError, json.JSONDecodeError) as exc:
-            raise TranslationError("local translation request failed") from exc
+            raise TranslationError("translation request failed; redirects are not followed") from exc
 
 
 def translator_from_env() -> LocalChatTranslator:
