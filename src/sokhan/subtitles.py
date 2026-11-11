@@ -104,7 +104,8 @@ def retime_cues_for_readability(
     the source timeline does not contain enough free time rather than creating
     overlapping cues or silently truncating the requested reading duration.
     """
-    if media_end_ms < 1 or max_chars_per_second <= 0 or min_duration_ms < 1:
+    if (media_end_ms < 1 or not math.isfinite(max_chars_per_second)
+            or max_chars_per_second <= 0 or min_duration_ms < 1):
         raise ValueError("media duration, reading rate, and minimum duration must be positive")
     result: list[Cue] = []
     for position, cue in enumerate(cues):
