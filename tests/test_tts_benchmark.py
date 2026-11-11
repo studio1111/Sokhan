@@ -69,3 +69,16 @@ def test_benchmark_rejects_mixed_sample_rates():
 
     with pytest.raises(ValueError, match="same sample rate"):
         benchmark_speech(["one", "two"], MixedRateSynthesizer())
+
+def test_benchmark_bounds_sample_count_and_total_text_size():
+    with pytest.raises(ValueError, match="maximum of 1"):
+        benchmark_speech(["one", "two"], FakeSynthesizer(), max_samples=1)
+    with pytest.raises(ValueError, match="total text"):
+        benchmark_speech(["long sample"], FakeSynthesizer(), max_total_chars=4)
+
+
+def test_benchmark_bounds_total_generated_audio_bytes():
+    with pytest.raises(ValueError, match="output byte limit"):
+        benchmark_speech(
+            ["hello"], FakeSynthesizer(), max_total_output_bytes=100
+        )
