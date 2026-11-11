@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from .contracts import SpeechSegment
+from .contracts import SpeechSegment, WordTiming
 
 
 class ASRConfigurationError(RuntimeError):
@@ -60,7 +60,23 @@ class FasterWhisperASR:
                 start_ms = max(0, round(float(segment.start) * 1000))
                 end_ms = round(float(segment.end) * 1000)
                 if text and end_ms > start_ms:
-                    output.append(SpeechSegment(start_ms, end_ms, text))
+                    words = []
+                    for word in getattr(segment, "words", None) or ():
+                        try:
+                            word_text = str(word.word).strip()
+                            word_start = round(float(word.start) * 1000)
+                            word_end = round(float(word.end) * 1000)
+                            probability = getattr(word, "probability", None)
+                            if (word_text and start_ms <= word_start < word_end <= end_ms):
+                                words.append(WordTiming(
+                                    word_start, word_end, word_text,
+                                    float(probability) if probability is not None else None,
+                                ))
+                        except (AttributeError, TypeError, ValueError):
+                            continue
+                    output.append(SpeechSegment(
+                        start_ms, end_ms, text, words=tuple(words)
+                    ))
             return output
         except Exception as exc:
             raise ASRConfigurationError("English audio transcription failed") from exc
