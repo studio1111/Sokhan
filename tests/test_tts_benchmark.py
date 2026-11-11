@@ -15,7 +15,7 @@ class FakeSynthesizer:
             output.setnchannels(1)
             output.setsampwidth(2)
             output.setframerate(8_000)
-            output.writeframes(b"\\x00\\x00" * 4_000)
+            output.writeframes(b"\x00\\x00" * 4_000)
         return output_path
 
 
@@ -31,7 +31,6 @@ def test_benchmark_reports_audio_runtime_metrics_without_source_text():
     assert report.p95_latency_ms >= report.median_latency_ms
     assert report.real_time_factor >= 0
     serialized = json.dumps(asdict(report))
-    assert "private sample" not in serialized
     assert "private sample" not in serialized
 
 
@@ -49,7 +48,7 @@ def test_benchmark_rejects_non_pcm16_wav():
                 output.setnchannels(1)
                 output.setsampwidth(1)
                 output.setframerate(8_000)
-                output.writeframes(b"\\x00" * 100)
+                output.writeframes(b"\x00" * 100)
 
     with pytest.raises(ValueError, match="16-bit PCM"):
         benchmark_speech(["hello"], InvalidSynthesizer())
@@ -66,7 +65,7 @@ def test_benchmark_rejects_mixed_sample_rates():
                 output.setnchannels(1)
                 output.setsampwidth(2)
                 output.setframerate(8_000 if self.count == 1 else 16_000)
-                output.writeframes(b"\\x00\\x00" * 100)
+                output.writeframes(b"\x00\\x00" * 100)
 
     with pytest.raises(ValueError, match="same sample rate"):
         benchmark_speech(["one", "two"], MixedRateSynthesizer())
