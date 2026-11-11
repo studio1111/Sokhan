@@ -1,3 +1,5 @@
+import pytest
+
 from sokhan.cli import build_parser
 
 
@@ -22,3 +24,15 @@ def test_srt_fit_cli_requires_media_duration():
     ])
     assert args.command == "srt-fit"
     assert args.media_duration_ms == 120000
+
+
+def test_serve_cli_defaults_to_loopback_only():
+    args = build_parser().parse_args(["serve"])
+    assert args.command == "serve"
+    assert args.host == "127.0.0.1"
+    assert args.port == 8765
+
+
+def test_serve_cli_rejects_public_listener():
+    with pytest.raises(SystemExit):
+        build_parser().parse_args(["serve", "--host", "0.0.0.0"])
