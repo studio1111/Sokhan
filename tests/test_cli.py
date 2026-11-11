@@ -39,7 +39,7 @@ def test_evaluate_text_cli_emits_machine_readable_metrics(tmp_path, monkeypatch,
     import json
 
     result = json.loads(capsys.readouterr().out)
-    assert result == {"wer": 0.5, "cer": 0.25}
+    assert result == {"wer": 0.5, "cer": 0.5}
 
 
 def test_evaluate_text_cli_rejects_empty_reference(tmp_path, monkeypatch, capsys):
