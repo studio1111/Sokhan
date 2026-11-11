@@ -1,6 +1,6 @@
 import pytest
 
-from sokhan.subtitles import Cue, dump_srt, parse_srt, retime_cues
+from sokhan.subtitles import (\n    Cue, dump_srt, parse_srt, retime_cues, retime_cues_for_readability,\n)
 
 SAMPLE = """1
 00:00:01,000 --> 00:00:02,500
@@ -37,7 +37,9 @@ def test_readability_retiming_extends_cue_without_overlapping_next():
     from sokhan.subtitles import retime_cues_for_readability
 
     cues = [Cue(1, 0, 500, "A short translated line"), Cue(2, 3000, 3500, "Next")]
-    result = retime_cues_for_readability(\n        cues, media_end_ms=5000, max_chars_per_second=100, min_duration_ms=1200\n    )
+    result = retime_cues_for_readability(
+        cues, media_end_ms=5000, max_chars_per_second=100, min_duration_ms=1200
+    )
     assert result[0].end_ms == 1200
     assert result[1].end_ms >= 3500
 
