@@ -1,4 +1,4 @@
-"""PDF text extraction, translation, and Persian RTL PDF generation."""
+"""PDF text extraction, optional local OCR, translation, and Persian RTL output."""
 from __future__ import annotations
 
 import re
@@ -7,16 +7,18 @@ from pathlib import Path
 
 from .contracts import Translator
 
+_OCR_LANGUAGE = re.compile(r"^[A-Za-z0-9_+-]{2,32}$")
+
 
 class PDFExtractionError(RuntimeError):
-    pass
+    """Raised when PDF text cannot be extracted safely."""
 
 
 class PDFOutputError(RuntimeError):
-    pass
+    """Raised when Persian PDF output cannot be generated."""
 
 
-def extract_pdf_text(path: str) -> str:
+def _extract_pdf_text_native(path: str | Path) -> str:
     try:
         from pypdf import PdfReader
     except ImportError as exc:
@@ -25,15 +27,83 @@ def extract_pdf_text(path: str) -> str:
         reader = PdfReader(path)
         if reader.is_encrypted:
             raise PDFExtractionError("encrypted PDFs are not supported")
-        text = "\n\n".join(value for page in reader.pages
-                            if (value := (page.extract_text() or "").strip()))
-        if not text:
-            raise PDFExtractionError("no extractable text found; scanned PDFs need OCR")
-        return text
+        return "\n\n".join(
+            value for page in reader.pages if (value := (page.extract_text() or "").strip())
+        )
     except PDFExtractionError:
         raise
     except Exception as exc:
         raise PDFExtractionError("could not extract PDF text") from exc
+
+
+def ocr_pdf_text(
+    path: str | Path,
+    *,
+    language: str = "eng",
+    dpi: int = 300,
+    max_pages: int = 200,
+) -> str:
+    """OCR every page locally using PyMuPDF's Tesseract integration.
+
+    PyMuPDF, the Tesseract executable, and the requested language data must be
+    installed by the user. Sokhan never downloads OCR engines or language packs.
+    """
+    if not _OCR_LANGUAGE.fullmatch(language):
+        raise ValueError("OCR language must be a simple Tesseract language code")
+    if not isinstance(dpi, int) or isinstance(dpi, bool) or not 72 <= dpi <= 600:
+        raise ValueError("OCR DPI must be an integer between 72 and 600")
+    if not isinstance(max_pages, int) or isinstance(max_pages, bool) or max_pages < 1:
+        raise ValueError("OCR page limit must be a positive integer")
+
+    try:
+        import pymupdf
+    except ImportError as exc:
+        raise PDFExtractionError("install the OCR extra: pip install 'sokhan[ocr]'") from exc
+
+    try:
+        with pymupdf.open(path) as document:
+            if document.is_encrypted:
+                raise PDFExtractionError("encrypted PDFs are not supported")
+            page_count = len(document)
+            if page_count > max_pages:
+                raise PDFExtractionError(
+                    f"PDF has {page_count} pages; configured OCR page limit is {max_pages}"
+                )
+            extracted = []
+            for page in document:
+                text_page = page.get_textpage_ocr(language=language, dpi=dpi, full=True)
+                text = page.get_text(textpage=text_page).strip()
+                if text:
+                    extracted.append(text)
+    except PDFExtractionError:
+        raise
+    except Exception as exc:
+        raise PDFExtractionError(
+            "local OCR failed; verify the Tesseract executable and requested language data"
+        ) from exc
+
+    if not extracted:
+        raise PDFExtractionError("OCR found no readable text in the PDF")
+    return "\n\n".join(extracted)
+
+
+def extract_pdf_text(
+    path: str | Path,
+    *,
+    ocr: bool = False,
+    ocr_language: str = "eng",
+    ocr_dpi: int = 300,
+    ocr_max_pages: int = 200,
+) -> str:
+    """Extract native PDF text, optionally using OCR when no text layer exists."""
+    text = _extract_pdf_text_native(path)
+    if text.strip():
+        return text
+    if ocr:
+        return ocr_pdf_text(
+            path, language=ocr_language, dpi=ocr_dpi, max_pages=ocr_max_pages
+        )
+    raise PDFExtractionError("no extractable text found; scanned PDFs need explicit OCR")
 
 
 def split_text_chunks(text: str, max_chars: int = 6_000) -> list[str]:
@@ -44,7 +114,7 @@ def split_text_chunks(text: str, max_chars: int = 6_000) -> list[str]:
         raise ValueError("PDF text must not be empty")
     chunks: list[str] = []
     current = ""
-    paragraphs = [re.sub(r"\s+", " ", part).strip() for part in text.split("\n\n")]
+    paragraphs = [re.sub(r"\\s+", " ", part).strip() for part in text.split("\n\n")]
     for paragraph in (part for part in paragraphs if part):
         pieces: Iterable[str]
         if len(paragraph) <= max_chars:
@@ -138,12 +208,22 @@ def translate_pdf(
     font_path: str | Path,
     register: str = "conversational",
     chunk_size: int = 6_000,
+    ocr: bool = False,
+    ocr_language: str = "eng",
+    ocr_dpi: int = 300,
+    ocr_max_pages: int = 200,
 ) -> Path:
-    """Extract, translate in bounded chunks, and render an RTL Persian PDF."""
+    """Extract, optionally OCR, translate bounded chunks, and render an RTL PDF."""
     destination = Path(output_path)
     if destination.exists():
         raise FileExistsError(destination)
-    source = extract_pdf_text(str(input_path))
+    source = extract_pdf_text(
+        input_path,
+        ocr=ocr,
+        ocr_language=ocr_language,
+        ocr_dpi=ocr_dpi,
+        ocr_max_pages=ocr_max_pages,
+    )
     chunks = split_text_chunks(source, chunk_size)
     from .workflows import translate_text
 
