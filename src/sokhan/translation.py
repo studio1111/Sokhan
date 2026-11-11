@@ -30,22 +30,22 @@ def _validate_endpoint(endpoint: str, allow_external: bool) -> str:
     if parsed.username or parsed.password:
         raise ValueError("endpoint must not contain embedded credentials")
     try:
-        parsed.port
+        port = parsed.port
     except ValueError as exc:
         raise ValueError("endpoint contains an invalid port") from exc
+    if port is not None and not 1 <= port <= 65535:
+        raise ValueError("endpoint contains an invalid port")
 
     host = parsed.hostname.lower()
     local = host in {"localhost", "127.0.0.1", "::1"}
     if parsed.path not in {"", "/"} or parsed.query or parsed.fragment:
         raise ValueError("endpoint must be a base URL without path, query, or fragment")
     if local:
-        if parsed.scheme != "http" and parsed.scheme != "https":
-            raise ValueError("local endpoint must use HTTP or HTTPS")
-    else:
-        if not allow_external:
-            raise ValueError("external endpoints are disabled; set allow_external=True explicitly")
-        if parsed.scheme != "https":
-            raise ValueError("remote endpoints require HTTPS, even when external access is enabled")
+        return endpoint.rstrip("/")
+    if not allow_external:
+        raise ValueError("external endpoints are disabled; set allow_external=True explicitly")
+    if parsed.scheme != "https":
+        raise ValueError("remote endpoints require HTTPS, even when external access is enabled")
     return endpoint.rstrip("/")
 
 
