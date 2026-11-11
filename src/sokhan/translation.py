@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import json
 import os
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 from urllib.request import Request, urlopen
-from urllib.error import HTTPError, URLError
 
 from .contracts import TranslationRequest, TranslationResult
 from .text import normalize_persian, prepare_translation_text

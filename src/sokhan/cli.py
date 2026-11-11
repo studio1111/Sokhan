@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 import sys
+from pathlib import Path
 
 from .pdf import extract_pdf_text
 from .subtitles import dump_srt, parse_srt, retime_cues

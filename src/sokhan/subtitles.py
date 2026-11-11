@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import itertools
 import re
+from dataclasses import dataclass
 
 _TIMESTAMP = re.compile(r"^(?P<h>\d{2,}):(?P<m>[0-5]\d):(?P<s>[0-5]\d),(?P<ms>\d{3})$")
 
@@ -58,7 +59,7 @@ def parse_srt(content: str) -> list[Cue]:
             raise ValueError("malformed SRT timing line")
         cues.append(Cue(int(lines[0].strip()), _parse_timestamp(timing[0]),
                         _parse_timestamp(timing[1]), "\n".join(lines[2:]).strip()))
-    for previous, current in zip(cues, cues[1:]):
+    for previous, current in itertools.pairwise(cues):
         if current.index <= previous.index:
             raise ValueError("cue indices must be strictly increasing")
         if current.start_ms < previous.start_ms:
