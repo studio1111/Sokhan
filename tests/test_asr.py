@@ -10,7 +10,13 @@ class FakeModel:
         assert kwargs["language"] == "en"
         assert kwargs["word_timestamps"] is True
         return iter([
-            SimpleNamespace(start=0.125, end=1.75, text=" Hello world "),
+            SimpleNamespace(
+                start=0.125, end=1.75, text=" Hello world ",
+                words=[
+                    SimpleNamespace(word=" Hello", start=0.125, end=0.7, probability=0.98),
+                    SimpleNamespace(word=" world", start=0.75, end=1.75, probability=0.95),
+                ],
+            ),
             SimpleNamespace(start=2.0, end=2.5, text=" Goodbye "),
         ]), SimpleNamespace(language="en")
 
@@ -23,6 +29,10 @@ def test_asr_maps_segments_to_milliseconds(tmp_path):
     assert [(s.start_ms, s.end_ms, s.text) for s in segments] == [
         (125, 1750, "Hello world"), (2000, 2500, "Goodbye")
     ]
+    assert [(word.start_ms, word.end_ms, word.text) for word in segments[0].words] == [
+        (125, 700, "Hello"), (750, 1750, "world")
+    ]
+    assert segments[0].words[0].probability == 0.98
 
 
 def test_asr_rejects_missing_audio(tmp_path):
