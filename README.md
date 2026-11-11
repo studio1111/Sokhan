@@ -43,7 +43,8 @@ python -m pip install -e ".[audio]"
 
 ~~~bash
 sokhan extract-pdf source.pdf
-sokhan pdf-to-fa source.pdf translated.fa.pdf --font /path/to/NotoNaskhArabic-Regular.ttf
+sokhan extract-pdf scan.pdf --ocr --ocr-language eng --ocr-dpi 300
+sokhan pdf-to-fa scan.pdf translated.fa.pdf --font /path/to/NotoNaskhArabic-Regular.ttf --ocr --ocr-language eng
 ~~~
 
 ترجمه در قطعه‌های محدود انجام می‌شود. خروجی موجود بازنویسی نمی‌شود. OCR به‌صورت پیش‌فرض خاموش است، حداکثر ۲۰۰ صفحه و DPI بین ۷۲ تا ۶۰۰ را می‌پذیرد و هیچ موتور یا بسته زبانی را خودکار دانلود نمی‌کند. جزئیات نصب در `docs/OCR.md` آمده است.
