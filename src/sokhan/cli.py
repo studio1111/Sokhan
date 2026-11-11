@@ -20,6 +20,9 @@ from .workflows import audio_to_srt, translate_srt
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="sokhan", description="English-to-Persian language toolkit")
     commands = parser.add_subparsers(dest="command", required=True)
+    serve = commands.add_parser("serve", help="start the secure local browser interface")
+    serve.add_argument("--host", choices=("127.0.0.1", "localhost", "::1"), default="127.0.0.1")
+    serve.add_argument("--port", type=int, default=8765)
     normalize = commands.add_parser("normalize-fa", help="normalize Persian typography")
     normalize.add_argument("input", nargs="?", help="text file; stdin if omitted")
     translate = commands.add_parser("translate", help="translate using a local model endpoint")
@@ -83,7 +86,10 @@ def _write_new_file(path: str, content: str) -> None:
 def main() -> int:
     args = build_parser().parse_args()
     try:
-        if args.command == "normalize-fa":
+        if args.command == "serve":
+            from .web import serve_local_web
+            serve_local_web(host=args.host, port=args.port)
+        elif args.command == "normalize-fa":
             print(normalize_persian(_read_input(args.input)))
         elif args.command == "translate":
             from .contracts import TranslationRequest
