@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sokhan"
+version = "0.1.0"
+description = "Local-first English-to-Persian translation, subtitles, and speech workflow toolkit"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "Sokhan contributors" }]
+dependencies = []
+
+[project.optional-dependencies]
+pdf = ["pypdf>=5.0,<7", "fpdf2>=2.8,<3", "uharfbuzz>=0.39,<1"]
+audio = ["faster-whisper>=1.1,<2"]
+dev = ["pytest>=8.3,<9", "ruff>=0.8,<1"]
+
+[project.scripts]
+sokhan = "sokhan.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

@@ -1,0 +1,58 @@
+name: "Sokhan text and subtitle tools"
+description: "Run local-first Persian normalization, translation, PDF conversion, and subtitle workflows."
+inputs:
+  command:
+    description: "Sokhan CLI command"
+    required: true
+  input:
+    description: "Input file path"
+    required: true
+  output:
+    description: "Output file path for commands that create files"
+    required: false
+  font:
+    description: "Path to a Persian-capable TrueType font for pdf-to-fa"
+    required: false
+  media-duration-ms:
+    description: "Media duration in milliseconds for srt-fit"
+    required: false
+  register:
+    description: "Translation register"
+    required: false
+    default: "conversational"
+runs:
+  using: "composite"
+  steps:
+    - shell: bash
+      working-directory: ${{ github.workspace }}
+      env:
+        SOKHAN_ACTION_PATH: ${{ github.action_path }}
+        SOKHAN_ACTION_COMMAND: ${{ inputs.command }}
+        SOKHAN_ACTION_INPUT: ${{ inputs.input }}
+        SOKHAN_ACTION_OUTPUT: ${{ inputs.output }}
+        SOKHAN_ACTION_FONT: ${{ inputs.font }}
+        SOKHAN_ACTION_MEDIA_DURATION: ${{ inputs.media-duration-ms }}
+        SOKHAN_ACTION_REGISTER: ${{ inputs.register }}
+      run: |
+        set -euo pipefail
+        python -m pip install --disable-pip-version-check -e "${SOKHAN_ACTION_PATH}[pdf]"
+        case "$SOKHAN_ACTION_COMMAND" in
+          normalize-fa) sokhan normalize-fa "$SOKHAN_ACTION_INPUT" ;;
+          translate) sokhan translate "$SOKHAN_ACTION_INPUT" --register "$SOKHAN_ACTION_REGISTER" ;;
+          extract-pdf) sokhan extract-pdf "$SOKHAN_ACTION_INPUT" ;;
+          pdf-to-fa)
+            test -n "$SOKHAN_ACTION_OUTPUT" && test -n "$SOKHAN_ACTION_FONT"
+            sokhan pdf-to-fa "$SOKHAN_ACTION_INPUT" "$SOKHAN_ACTION_OUTPUT" --font "$SOKHAN_ACTION_FONT" --register "$SOKHAN_ACTION_REGISTER"
+            ;;
+          srt-check) sokhan srt-check "$SOKHAN_ACTION_INPUT" ;;
+          srt-fit)
+            test -n "$SOKHAN_ACTION_OUTPUT" && test -n "$SOKHAN_ACTION_MEDIA_DURATION"
+            sokhan srt-fit "$SOKHAN_ACTION_INPUT" "$SOKHAN_ACTION_OUTPUT" --media-duration-ms "$SOKHAN_ACTION_MEDIA_DURATION"
+            ;;
+          vtt-check) sokhan vtt-check "$SOKHAN_ACTION_INPUT" ;;
+          translate-srt|translate-vtt)
+            test -n "$SOKHAN_ACTION_OUTPUT"
+            sokhan "$SOKHAN_ACTION_COMMAND" "$SOKHAN_ACTION_INPUT" "$SOKHAN_ACTION_OUTPUT" --register "$SOKHAN_ACTION_REGISTER"
+            ;;
+          *) echo "Unsupported Sokhan command" >&2; exit 2 ;;
+        esac
