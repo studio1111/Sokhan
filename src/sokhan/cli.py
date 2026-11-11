@@ -121,9 +121,12 @@ def main() -> int:
         elif args.command == "text-to-speech":
             synthesizer_from_env().synthesize(_read_input(args.input), args.output)
         elif args.command == "benchmark-tts":
+            sample_path = Path(args.input)
+            if sample_path.stat().st_size > 1024 * 1024:
+                raise ValueError("benchmark input file exceeds 1 MiB")
             texts = [
                 line.strip()
-                for line in Path(args.input).read_text(encoding="utf-8").splitlines()
+                for line in sample_path.read_text(encoding="utf-8").splitlines()
                 if line.strip()
             ]
             report = benchmark_speech(texts, synthesizer_from_env())
