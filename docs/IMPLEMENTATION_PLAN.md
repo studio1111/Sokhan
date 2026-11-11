@@ -6,6 +6,7 @@
 - Deterministic SRT readability fitting based on configurable characters-per-second; this is a heuristic and not word-level alignment.
 - Text-PDF extraction, bounded translation chunks, and Persian RTL PDF output using a user-supplied TrueType font with HarfBuzz shaping.
 - FFmpeg audio extraction and optional timestamped English ASR.
+- Versioned, lossless ASR transcript JSON export preserving segment/word timestamps, available confidence, and optional speaker/emotion metadata.
 - Local-only OpenAI-compatible TTS adapter and CLI; engine/model selection and voice quality remain external evaluation tasks.
 - CI matrix, lint, PDF rendering smoke test, retention policy tests, weekly quality baseline.
 

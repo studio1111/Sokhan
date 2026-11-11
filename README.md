@@ -16,7 +16,7 @@
 | استخراج متن PDF متنی | پیاده‌سازی شده |
 | ترجمه PDF متنی و ساخت PDF فارسی RTL | پیاده‌سازی شده؛ نیازمند فونت TTF مناسب |
 | استخراج صوت با FFmpeg | پیاده‌سازی شده |
-| ASR انگلیسی با faster-whisper | اختیاری؛ زمان‌بندی segment و word حفظ می‌شود |
+| ASR انگلیسی با faster-whisper | اختیاری؛ زمان‌بندی segment و word حفظ می‌شود و خروجی JSON نسخه‌دار دارد |
 | اتصال به TTS محلی OpenAI-compatible | adapter و CLI پیاده‌سازی شده؛ نیازمند موتور سازگار |
 | word alignment، diarization و emotion/prosody | در دست توسعه |
 | cross-lingual voice cloning و دوبله نهایی | در دست توسعه؛ نیازمند رضایت و ارزیابی مجوز |
@@ -56,10 +56,10 @@ sokhan srt-fit captions.fa.srt readable.fa.srt --media-duration-ms 125000 --max-
 sokhan translate-vtt captions.en.vtt captions.fa.vtt
 sokhan extract-audio input.mp4 audio.wav
 python -m pip install -e ".[audio]"
-sokhan audio-to-srt audio.wav output.fa.srt --asr-model small.en --device cpu
+sokhan audio-to-srt audio.wav output.fa.srt --asr-model small.en --device cpu\nsokhan audio-to-json audio.wav transcript.json --asr-model small.en --device cpu
 ~~~
 
-مدل ASR در نخستین اجرا ممکن است دانلود و در cache محلی نگهداری شود. فایل ویدئو بازسازی یا دوبله نمی‌شود.
+مدل ASR در نخستین اجرا ممکن است دانلود و در cache محلی نگهداری شود. خروجی JSON نسخه‌دار، زمان‌بندی segment و word، احتمال word و فیلدهای speaker/emotion موجود را بدون حذف حفظ می‌کند؛ خالی‌بودن این فیلدها به معنی پشتیبانی از diarization یا emotion inference نیست. فایل ویدئو بازسازی یا دوبله نمی‌شود.
 
 ## TTS محلی
 

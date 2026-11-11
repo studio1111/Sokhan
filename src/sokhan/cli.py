@@ -10,6 +10,7 @@ from .asr import FasterWhisperASR
 from .media import extract_audio
 from .pdf import extract_pdf_text, translate_pdf
 from .speech import synthesizer_from_env
+from .speech_io import dump_speech_json
 from .subtitles import dump_srt, parse_srt, retime_cues, retime_cues_for_readability
 from .text import normalize_persian
 from .translation import translator_from_env
@@ -51,6 +52,13 @@ def build_parser() -> argparse.ArgumentParser:
     tts = commands.add_parser("text-to-speech", help="synthesize WAV through a local TTS endpoint")
     tts.add_argument("input", nargs="?", help="text file; stdin if omitted")
     tts.add_argument("output")
+    asr_json = commands.add_parser(
+        "audio-to-json", help="export ASR segments and word timestamps as versioned JSON"
+    )
+    asr_json.add_argument("input")
+    asr_json.add_argument("output")
+    asr_json.add_argument("--asr-model", default="small.en")
+    asr_json.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
     dubbing = commands.add_parser("audio-to-srt", help="transcribe English audio and translate to Persian SRT")
     dubbing.add_argument("input")
     dubbing.add_argument("output")
@@ -112,6 +120,10 @@ def main() -> int:
             extract_audio(args.input, args.output)
         elif args.command == "text-to-speech":
             synthesizer_from_env().synthesize(_read_input(args.input), args.output)
+        elif args.command == "audio-to-json":
+            asr = FasterWhisperASR(model_name=args.asr_model, device=args.device)
+            segments = asr.transcribe(args.input)
+            _write_new_file(args.output, dump_speech_json(segments))
         elif args.command == "audio-to-srt":
             asr = FasterWhisperASR(model_name=args.asr_model, device=args.device)
             cues = audio_to_srt(args.input, asr, translator_from_env(), register=args.register)
