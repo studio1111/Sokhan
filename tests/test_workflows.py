@@ -29,7 +29,6 @@ def test_audio_to_srt_preserves_asr_timestamps():
 
 
 def test_audio_to_dub_runs_asr_translation_and_local_synthesis(tmp_path):
-    from pathlib import Path
     import struct
     import wave
 
