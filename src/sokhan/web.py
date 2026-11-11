@@ -25,7 +25,7 @@ _MAX_TTS_BYTES = 50 * 1024 * 1024
 _MAX_PDF_OUTPUT_BYTES = 50 * 1024 * 1024
 _ALLOWED_ASR_MODELS = {"tiny.en", "base.en", "small.en", "medium.en", "large-v3"}
 _ALLOWED_REGISTERS = {"conversational", "formal", "neutral"}
-_UPLOAD_REQUIRED = _UPLOAD_REQUIRED
+_UPLOAD_REQUIRED = File(...)
 
 
 class _RequestTooLarge(Exception):
