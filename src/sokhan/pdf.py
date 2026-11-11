@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Iterable
+from collections.abc import Iterable
 
 from .contracts import Translator
 
