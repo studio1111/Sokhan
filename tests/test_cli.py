@@ -22,3 +22,36 @@ def test_srt_fit_cli_requires_media_duration():
     ])
     assert args.command == "srt-fit"
     assert args.media_duration_ms == 120000
+
+def test_audio_to_json_cli_preserves_word_timestamps(tmp_path, monkeypatch):
+    import json
+
+    from sokhan import cli
+    from sokhan.contracts import SpeechSegment, WordTiming
+
+    audio = tmp_path / "input.wav"
+    audio.write_bytes(b"fixture")
+    output = tmp_path / "transcript.json"
+
+    class FakeASR:
+        def __init__(self, **kwargs):
+            assert kwargs == {"model_name": "small.en", "device": "cpu"}
+
+        def transcribe(self, path):
+            assert path == str(audio)
+            return [
+                SpeechSegment(
+                    100, 900, "Hello",
+                    words=(WordTiming(100, 900, "Hello", 0.91),),
+                )
+            ]
+
+    monkeypatch.setattr(cli, "FasterWhisperASR", FakeASR)
+    monkeypatch.setattr(
+        "sys.argv",
+        ["sokhan", "audio-to-json", str(audio), str(output)],
+    )
+
+    assert cli.main() == 0
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["segments"][0]["words"][0]["probability"] == 0.91
