@@ -47,3 +47,17 @@ def test_split_text_chunks_rejects_invalid_limit():
 def test_pdf_writer_requires_existing_ttf_font(tmp_path: Path):
     with pytest.raises(PDFOutputError, match="font file"):
         write_persian_pdf("متن فارسی", tmp_path / "out.pdf", tmp_path / "missing.ttf")
+
+
+def test_pdf_writer_renders_a_persian_page_when_system_font_is_available(tmp_path: Path):
+    candidates = [
+        Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+        Path("/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf"),
+        Path("/usr/share/fonts/truetype/noto/NotoNaskhArabic-Regular.ttf"),
+    ]
+    font = next((candidate for candidate in candidates if candidate.is_file()), None)
+    if font is None:
+        pytest.skip("no system TrueType font with Arabic/Persian glyphs is installed")
+    output = tmp_path / "persian.pdf"
+    assert write_persian_pdf("سلام دنیا\nاین یک آزمون فارسی است.", output, font) == output
+    assert output.read_bytes().startswith(b"%PDF")
