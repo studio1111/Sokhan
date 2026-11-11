@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from .asr import FasterWhisperASR
+from .dubbing import synthesize_srt
 from .media import extract_audio
 from .pdf import extract_pdf_text, translate_pdf
 from .speech import synthesizer_from_env
