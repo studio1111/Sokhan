@@ -216,7 +216,7 @@ def test_pdf_extraction_ocr_only_scanned_pages_in_mixed_document(monkeypatch, tm
         lambda path, **kwargs: seen.update(kwargs) or {1: "Recognized scan"},
     )
     result = pdf.extract_pdf_text(tmp_path / "mixed.pdf", ocr=True)
-    assert result == "Native text\\n\\nRecognized scan"
+    assert result == "Native text\n\nRecognized scan"
     assert seen["page_indices"] == {1}
 
 
