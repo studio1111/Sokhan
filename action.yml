@@ -24,8 +24,9 @@ runs:
   using: "composite"
   steps:
     - shell: bash
-      working-directory: ${{ github.action_path }}
+      working-directory: ${{ github.workspace }}
       env:
+        SOKHAN_ACTION_PATH: ${{ github.action_path }}
         SOKHAN_ACTION_COMMAND: ${{ inputs.command }}
         SOKHAN_ACTION_INPUT: ${{ inputs.input }}
         SOKHAN_ACTION_OUTPUT: ${{ inputs.output }}
@@ -34,7 +35,7 @@ runs:
         SOKHAN_ACTION_REGISTER: ${{ inputs.register }}
       run: |
         set -euo pipefail
-        python -m pip install --disable-pip-version-check ".[pdf]"
+        python -m pip install --disable-pip-version-check -e "${SOKHAN_ACTION_PATH}[pdf]"
         case "$SOKHAN_ACTION_COMMAND" in
           normalize-fa) sokhan normalize-fa "$SOKHAN_ACTION_INPUT" ;;
           translate) sokhan translate "$SOKHAN_ACTION_INPUT" --register "$SOKHAN_ACTION_REGISTER" ;;
