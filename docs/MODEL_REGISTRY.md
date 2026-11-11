@@ -14,6 +14,8 @@ This registry distinguishes source code, pretrained weights, datasets, and infer
 | ParsVoice-XTTS | Persian fine-tune of XTTS-v2; model card describes zero-shot speaker cloning and Persian output | Coqui Public Model License (CPML) inherited from XTTS-v2; commercial restrictions | Do not use for a generally commercial product |
 | Nava FA | Small Persian TTS student, CPU inference and optional reference-voice cloning | Commercial grant is geographically restricted; research/evaluation terms differ from commercial use | Not a globally reusable default |
 | F5-TTS Persian | Persian implementation of F5-TTS | Published pretrained weights are CC-BY-NC due to training data | Do not use for commercial distribution |
+| Aava TTS 3B (KEYHAN-A) | Persian-only Orpheus fine-tune; ~3.78B parameters / ~7.59 GB, one shared conditioning label | Apache-2.0 weights; no formal MOS, speaker-similarity, or latency evaluation; transcript duplicates were found across original splits | Candidate for non-cloning fallback only; too large for a default CPU path pending benchmarks |
+| MOSS-TTS-Nano Persian | Persian fine-tune of MOSS-TTS-Nano; short utterance synthesis | Apache-2.0 weights; card reports emotionally flat output and no emotional variation in training data | Lightweight non-cloning experimental candidate; not suitable for expressive dubbing |
 
 ## Datasets
 | Candidate | Role | Current status |
@@ -33,4 +35,6 @@ No entry is an endorsement or claim of integration. Update this registry only wi
 - ParsVoice XTTS model card: https://huggingface.co/MohammadJRanjbar/ParsVoice-XTTS
 - Nava FA project and territorial commercial terms: https://github.com/zorost/nava-fa
 - F5-TTS Persian implementation and pretrained-weight license: https://github.com/sepehreghdami/F5-TTS-Persian
+- Aava TTS 3B model card and limitations: https://huggingface.co/KEYHAN-A/aava-tts-persian-3b
+- MOSS-TTS-Nano Persian model card and license: https://huggingface.co/nimaaaAI/MOSS-TTS-Nano-Persian
 - ManaTTS Persian paper: https://arxiv.org/html/2409.07259v1
