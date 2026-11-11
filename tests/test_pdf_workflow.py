@@ -156,3 +156,47 @@ def test_pdf_extraction_can_explicitly_fallback_to_ocr(monkeypatch, tmp_path: Pa
     monkeypatch.setattr(pdf, "ocr_pdf_text", lambda path, **kwargs: "OCR result")
     monkeypatch.setattr(pdf, "_extract_pdf_text_native", lambda path: "")
     assert pdf.extract_pdf_text(tmp_path / "scanned.pdf", ocr=True) == "OCR result"
+
+
+def test_ocr_pdf_text_reports_missing_optional_runtime(monkeypatch, tmp_path: Path):
+    import sys
+
+    from sokhan.pdf import PDFExtractionError, ocr_pdf_text
+
+    monkeypatch.setitem(sys.modules, "pymupdf", None)
+    source = tmp_path / "scanned.pdf"
+    source.touch()
+    with pytest.raises(PDFExtractionError, match="sokhan\\[ocr\\]"):
+        ocr_pdf_text(source)
+
+
+def test_ocr_pdf_text_enforces_hard_page_limit(tmp_path: Path):
+    from sokhan.pdf import ocr_pdf_text
+
+    source = tmp_path / "scanned.pdf"
+    source.touch()
+    with pytest.raises(ValueError, match="2000"):
+        ocr_pdf_text(source, max_pages=2001)
+
+
+def test_translate_pdf_forwards_explicit_ocr_configuration(monkeypatch, tmp_path: Path):
+    from sokhan import pdf
+
+    captured = {}
+    monkeypatch.setattr(
+        pdf, "extract_pdf_text",
+        lambda path, **kwargs: captured.update(options=kwargs) or "Hello",
+    )
+    monkeypatch.setattr(
+        pdf, "write_persian_pdf",
+        lambda text, output, font: output,
+    )
+    result = translate_pdf(
+        "scan.pdf", tmp_path / "translated.pdf", FakeTranslator(),
+        font_path="font.ttf", ocr=True, ocr_language="eng+fas",
+        ocr_dpi=240, ocr_max_pages=12,
+    )
+    assert result == tmp_path / "translated.pdf"
+    assert captured["options"] == {
+        "ocr": True, "ocr_language": "eng+fas", "ocr_dpi": 240, "ocr_max_pages": 12,
+    }
