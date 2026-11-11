@@ -15,7 +15,7 @@
 | اتصال به مدل محلی با API سازگار OpenAI | پیاده‌سازی شده؛ نیازمند اجرای مدل محلی |
 | استخراج متن PDF متنی | پیاده‌سازی اختیاری با افزونه PDF |
 | ترجمه کامل فایل PDF و ساخت PDF راست‌چین | در دست توسعه |
-| ترجمه SRT/VTT و تنظیم هوشمند زمان‌بندی | در دست توسعه |
+| خواندن/نوشتن و ترجمه SRT/VTT با حفظ زمان اصلی cueها | پیاده‌سازی شده؛ retiming معنایی در دست توسعه |
 | استخراج صوت از فایل صوتی/ویدئویی به WAV | پیاده‌سازی شده با FFmpeg |
 | ASR انگلیسی با زمان‌بندی قطعه‌ها | پیاده‌سازی اختیاری با faster-whisper |\n| تفکیک گوینده و زمان‌بندی دقیق کلمات | در دست توسعه |
 | تحلیل احساس، مکث و تأکید | در دست توسعه |
@@ -36,10 +36,17 @@ ruff check .
 ~~~bash
 sokhan normalize-fa input.txt
 sokhan extract-pdf document.pdf
-sokhan srt-check captions.srt --max-duration-ms 120000\nsokhan extract-audio input.mp4 audio.wav
+sokhan srt-check captions.srt --max-duration-ms 120000\nsokhan vtt-check captions.vtt\nsokhan extract-audio input.mp4 audio.wav
 ~~~
 
 ### استخراج صوت و زیرنویس فارسی
+
+برای ترجمه زیرنویس موجود نیز فرمان‌های translate-srt و translate-vtt در دسترس‌اند و فایل خروجی را بدون overwrite ایجاد می‌کنند:
+
+~~~bash
+sokhan translate-srt captions.en.srt captions.fa.srt
+sokhan translate-vtt captions.en.vtt captions.fa.vtt
+~~~
 
 برای استخراج صوت، FFmpeg باید روی سیستم نصب باشد:
 
