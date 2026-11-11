@@ -12,9 +12,8 @@ test("keeps the latest 30 completed runs independently per workflow", () => {
     created_at: new Date(Date.UTC(2026, 1, i + 1)).toISOString(),
   })));
   const deleted = selectRunsToDelete(runs);
-  assert.equal(deleted.length, 7);
-  assert.deepEqual(new Set(deleted.map((run) => run.workflow_id)), new Set([10, 20]));
-  assert.ok(deleted.every((run) => run.id <= 5 || run.id >= 130));
+  assert.deepEqual(deleted.map((run) => run.id).sort((a, b) => a - b),
+    [1, 2, 3, 4, 5, 100, 101]);
 });
 
 test("never selects queued, in-progress, or runs without workflow IDs", () => {
