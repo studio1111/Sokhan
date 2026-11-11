@@ -12,7 +12,8 @@ from .pdf import extract_pdf_text
 from .subtitles import dump_srt, parse_srt, retime_cues
 from .text import normalize_persian
 from .translation import translator_from_env
-from .workflows import audio_to_srt
+from .vtt import dump_vtt, parse_vtt
+from .workflows import audio_to_srt, translate_srt
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -29,6 +30,8 @@ def build_parser() -> argparse.ArgumentParser:
     srt = commands.add_parser("srt-check", help="validate and optionally clamp SRT timings")
     srt.add_argument("input")
     srt.add_argument("--max-duration-ms", type=int)
+    vtt = commands.add_parser("vtt-check", help="validate and normalize WebVTT timings")
+    vtt.add_argument("input")
     audio = commands.add_parser("extract-audio", help="extract mono WAV audio from a media file")
     audio.add_argument("input")
     audio.add_argument("output")
@@ -39,11 +42,26 @@ def build_parser() -> argparse.ArgumentParser:
     dubbing.add_argument("--device", choices=("cpu", "cuda"), default="cpu")
     dubbing.add_argument("--register", choices=("conversational", "formal", "neutral"),
                          default="conversational")
+    for name, help_text in (
+        ("translate-srt", "translate SRT cue text to Persian"),
+        ("translate-vtt", "translate WebVTT cue text to Persian"),
+    ):
+        command = commands.add_parser(name, help=help_text)
+        command.add_argument("input")
+        command.add_argument("output")
+        command.add_argument("--register", choices=("conversational", "formal", "neutral"),
+                             default="conversational")
     return parser
 
 
 def _read_input(path: str | None) -> str:
     return Path(path).read_text(encoding="utf-8") if path else sys.stdin.read()
+
+
+def _write_new_file(path: str, content: str) -> None:
+    """Write a new output without silently overwriting user data."""
+    with Path(path).open("x", encoding="utf-8", newline="") as output:
+        output.write(content)
 
 
 def main() -> int:
@@ -61,12 +79,24 @@ def main() -> int:
         elif args.command == "srt-check":
             cues = parse_srt(Path(args.input).read_text(encoding="utf-8"))
             print(dump_srt(retime_cues(cues, max_end_ms=args.max_duration_ms)), end="")
+        elif args.command == "vtt-check":
+            print(dump_vtt(parse_vtt(Path(args.input).read_text(encoding="utf-8"))), end="")
         elif args.command == "extract-audio":
             extract_audio(args.input, args.output)
         elif args.command == "audio-to-srt":
             asr = FasterWhisperASR(model_name=args.asr_model, device=args.device)
             cues = audio_to_srt(args.input, asr, translator_from_env(), register=args.register)
-            Path(args.output).write_text(dump_srt(cues), encoding="utf-8")
+            _write_new_file(args.output, dump_srt(cues))
+        elif args.command == "translate-srt":
+            cues = translate_srt(
+                parse_srt(Path(args.input).read_text(encoding="utf-8")),
+                translator_from_env(), register=args.register)
+            _write_new_file(args.output, dump_srt(cues))
+        elif args.command == "translate-vtt":
+            cues = translate_srt(
+                parse_vtt(Path(args.input).read_text(encoding="utf-8")),
+                translator_from_env(), register=args.register)
+            _write_new_file(args.output, dump_vtt(cues))
         return 0
     except (OSError, ValueError, RuntimeError) as exc:
         print(f"sokhan: {exc}", file=sys.stderr)
