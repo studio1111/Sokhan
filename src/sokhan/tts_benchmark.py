@@ -61,16 +61,28 @@ def _inspect_wav(path: Path) -> tuple[int, int, int, int]:
 def benchmark_speech(
     texts: Sequence[str],
     synthesizer: SpeechSynthesizer,
+    *,
+    max_samples: int = 100,
+    max_total_chars: int = 100_000,
+    max_total_output_bytes: int = 512 * 1024 * 1024,
+    max_total_duration_ms: int = 3_600_000,
 ) -> TTSBenchmarkReport:
     """Run local synthesis samples and report reproducible runtime/audio metrics.
 
     Temporary WAV files are deleted on success or failure. No source text or
     synthesized audio is included in the returned report.
     """
-    if not texts:
+    limits = (max_samples, max_total_chars, max_total_output_bytes, max_total_duration_ms)
+    if any(not isinstance(limit, int) or isinstance(limit, bool) or limit < 1 for limit in limits):
+        raise ValueError("benchmark resource limits must be positive integers")
+    if isinstance(texts, str) or not texts:
         raise ValueError("provide at least one benchmark sample")
+    if len(texts) > max_samples:
+        raise ValueError(f"benchmark supports a maximum of {max_samples} samples")
     if any(not isinstance(text, str) or not text.strip() for text in texts):
         raise ValueError("benchmark sample text must not be empty")
+    if sum(len(text) for text in texts) > max_total_chars:
+        raise ValueError(f"benchmark total text exceeds {max_total_chars} characters")
 
     latencies: list[float] = []
     total_duration_ms = 0
@@ -94,6 +106,10 @@ def benchmark_speech(
             duration_ms = round(frames * 1_000 / sample_rate)
             if duration_ms < 1:
                 raise ValueError("TTS WAV duration is below one millisecond")
+            if total_bytes + output_size > max_total_output_bytes:
+                raise ValueError("benchmark output byte limit exceeded")
+            if total_duration_ms + duration_ms > max_total_duration_ms:
+                raise ValueError("benchmark total audio duration limit exceeded")
             latencies.append(latency_ms)
             total_duration_ms += duration_ms
             total_bytes += output_size
